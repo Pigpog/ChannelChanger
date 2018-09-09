@@ -1,17 +1,21 @@
 const Discord = require('discord.js');const client = new Discord.Client();
 const jsonfile = require('jsonfile');
+
 client.on('ready', () => {
 	console.log('Ready!');
-	client.user.setPresence({ game: { name: "!help - Changing Channels since 04/11/17", type: 0 } });
+	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
 	for(var i=0;i<client.guilds.array().length;i++){
 		console.log(client.guilds.array()[i].name+" id: "+client.guilds.array()[i].id)
     }
     scanAll()
 });
+
 const tokens = require('./tokens.js');
-client.login(tokens.bot2_token);
+client.login(tokens.bot_token);
 var channels=require("./channels.json")
-var noFlyList=["nogame","Spotify"]
+
+//list of things not to display in channel name.
+var noFlyList=["nogame","Spotify"]	//Never ever remove nogame from this array!!!
 
 var keys=[] //list of channel id's
 
@@ -29,7 +33,7 @@ keys=Object.keys(channels)
 function majority(array){
     var items=new Object()
     for (var i = 0; i < array.length; i++){
-        items[array[i]]=((items[array[i]] || 0)+1)
+        items[array[i]]=((items[array[i]] || 0)+1)	//set items[array[i]] to 1 if it doesnt already exist or add 1 if it does. My favourite line.
     }
     console.log(items)
     var majority=""
