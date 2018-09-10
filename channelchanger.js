@@ -1,21 +1,17 @@
 const Discord = require('discord.js');const client = new Discord.Client();
 const jsonfile = require('jsonfile');
-
 client.on('ready', () => {
 	console.log('Ready!');
-	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
+	client.user.setPresence({ game: { name: "!help - Changing Channels since 04/11/17", type: 0 } });
 	for(var i=0;i<client.guilds.array().length;i++){
 		console.log(client.guilds.array()[i].name+" id: "+client.guilds.array()[i].id)
     }
     scanAll()
 });
-
 const tokens = require('./tokens.js');
-client.login(tokens.bot_token);
+client.login(tokens.bot3_token);
 var channels=require("./channels.json")
-
-//list of things not to display in channel name.
-var noFlyList=["nogame","Spotify"]	//Never ever remove nogame from this array!!!
+var noFlyList=["nogame","Spotify"]
 
 var keys=[] //list of channel id's
 
@@ -30,23 +26,20 @@ function autosave() {
 	console.log("Autosave Complete")
 }
 keys=Object.keys(channels)
-function majority(array){
+function majority(array,userCount){
     var items=new Object()
     for (var i = 0; i < array.length; i++){
-        items[array[i]]=((items[array[i]] || 0)+1)	//set items[array[i]] to 1 if it doesnt already exist or add 1 if it does. My favourite line.
+        items[array[i]]=((items[array[i]] || 0)+1)
     }
-    console.log(items)
     var majority=""
     var majorityNumber=0
-    var total=0
     for(var key in items){
-        total++
         if(items[key]>majorityNumber){
             majority=key;
             majorityNumber=items[key]
         }
     }
-    if((majorityNumber/total)>0.5){
+    if((majorityNumber/userCount)>0.5){
         return(majority)
     }else{
         return("nogame")
@@ -74,7 +67,7 @@ function scanOne(channelId){
                         }
                     }
                 }
-                var newTitle=majority(games)
+                var newTitle=majority(games,channel.members.array().length)
                 if(!noFlyList.includes(newTitle)){
                     channel.setName(channels[channelId]+" - "+newTitle)
                 }else{
@@ -85,7 +78,7 @@ function scanOne(channelId){
             }
         }
     }else{
-        console.log("Found deleted channel "+channels[channelId])
+        //console.log("Found deleted channel "+channels[channelId])
         //delete channels[channelId]
     }
 }
