@@ -2,14 +2,14 @@ const Discord = require('discord.js');const client = new Discord.Client();
 const jsonfile = require('jsonfile');
 client.on('ready', () => {
 	console.log('Ready!');
-	client.user.setPresence({ game: { name: "!help - Changing Channels since 04/11/17", type: 0 } });
+	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
 	for(var i=0;i<client.guilds.array().length;i++){
 		console.log(client.guilds.array()[i].name+" id: "+client.guilds.array()[i].id)
     }
     scanAll()
 });
 const tokens = require('./tokens.js');
-client.login(tokens.bot3_token);
+client.login(tokens.bot_token);
 var channels=require("./channels.json")
 var noFlyList=["nogame","Spotify"]
 
