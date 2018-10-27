@@ -1,6 +1,8 @@
 # ChannelChanger
 Discord bot that changes voice channel names based on what games people are playing in it
 
+[Invite](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16)
+
 ![Demonstration](https://github.com/Pigpog/ChannelChanger/raw/master/example.png)
 
 ## Commands
