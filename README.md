@@ -10,6 +10,12 @@ Discord bot that changes voice channel names based on what games people are play
 
 `!removevc`   Disables the bot for your connected voice channel.
 
+`!majority`   Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.
+
+`!gameonly`   Voice channel name will be set to just the title of the game, not hyphenated.
+
+`!showhyphen` Toggles showing the hyphen (`-`) between the voice channel name and the game title.
+
 ## Setup
 (Note: You and the bot need Manage Channels permission)
  - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16)
