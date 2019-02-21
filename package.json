@@ -1,27 +1,23 @@
 {
   "name": "channelchanger",
   "version": "1.0.0",
-  "description": "Changes discord voice channel names depending on the games people are playing in it",
-  "main": "channelchanger.js",
+  "description": "Set's a VoiceChannels name based upon the most game played",
+  "main": "start.js",
+  "dependencies": {
+    "discord.js": "^11.4.2"
+  },
+  "devDependencies": {},
   "scripts": {
-    "test": "node channelchanger.js"
+    "test": "node start.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Pigpog/ChannelChanger.git"
+    "url": "git+https://github.com/devr2k/ChannelChanger.git"
   },
-  "keywords": [
-    "discord",
-    "bot"
-  ],
-  "author": "Pigpog",
-  "license": "ISC",
+  "author": "Pigpog, devr2k",
+  "license": "BSD-2-Clause",
   "bugs": {
-    "url": "https://github.com/Pigpog/ChannelChanger/issues"
+    "url": "https://github.com/devr2k/ChannelChanger/issues"
   },
-  "homepage": "https://github.com/Pigpog/ChannelChanger#readme",
-  "dependencies": {
-    "discord.js": "^11.4.2",
-    "jsonfile": "^5.0.0"
-  }
+  "homepage": "https://github.com/devr2k/ChannelChanger#readme"
 }
