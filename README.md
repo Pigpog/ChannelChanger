@@ -3,7 +3,7 @@ Discord bot that changes voice channel names based on what games people are play
 ![Demonstration](./example.png)
 
 ## To Begin
-Run `npm i` to install the dependencies and run start.js
+`npm start`
 
 ## Commands
  - `!addvc`      Enables the bot for your connected voice channel.
