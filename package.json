@@ -1,23 +1,25 @@
 {
-  "name": "channelchanger",
-  "version": "1.0.0",
-  "description": "Set's a VoiceChannels name based upon the most game played",
-  "main": "start.js",
-  "dependencies": {
-    "discord.js": "^11.4.2"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "node start.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/devr2k/ChannelChanger.git"
-  },
-  "author": "Pigpog, devr2k",
-  "license": "BSD-2-Clause",
-  "bugs": {
-    "url": "https://github.com/devr2k/ChannelChanger/issues"
-  },
-  "homepage": "https://github.com/devr2k/ChannelChanger#readme"
+    "name": "channelchanger",
+    "version": "1.0.0",
+    "description": "Set's a VoiceChannels name based upon the most game played",
+    "main": "start.js",
+    "dependencies": {
+        "discord.js": "^11.4.2"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "postinstall": "node start.js",
+        "start": "npm i"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/devr2k/ChannelChanger.git"
+    },
+    "author": "Pigpog, devr2k",
+    "license": "BSD-2-Clause",
+    "bugs": {
+        "url": "https://github.com/devr2k/ChannelChanger/issues"
+    },
+    "homepage": "https://github.com/devr2k/ChannelChanger#readme"
+
 }
