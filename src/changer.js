@@ -1,7 +1,12 @@
+/**
+ * Channel changing scirpt
+ * @author devr2k
+ */
 const Discord = require('discord.js');
+const log = console.log
 const changer = {
     names: new Map(),
-    template: require('./storage/config.json').template
+    abbreviations: {}
 }
 
 /**
@@ -29,11 +34,14 @@ changer.majority = (channel, callback) => {
                 compared.push([games[key], key])
             })
             let sorted = compared.sort()
-            return {
+            return sorted.length != 0 ? {
+                // The game name
                 "game": sorted[sorted.length - 1][1],
+                // Amount of players
                 "count": sorted[sorted.length - 1][0],
-                "games": Object.keys(games)
-            }
+                // Other games being played and counted
+                "games": games
+            } : {"game": "", "count": 0, "games": games}
         } else callback(new Error("No members in this VoiceChannel.\n - ID: " + channel.id))
 
     } else callback(new Error("Channel provided is not a VoiceChannel."))
@@ -50,20 +58,25 @@ changer.majority = (channel, callback) => {
    example: "X - Y" will make "Lounge - CS:GO"
  * @returns {Promise<channel>}
  */
-changer.change = (channel, template = changer.template) => {
+changer.change = (channel, template = "X - Y") => {
     return new Promise((res, rej) => {
-        let majority = changer.majority(channel, rej)
-        console.log("Changing Channel: \n - name: " + channel.name + "\n - id: " + channel.id + "\n - majority: " + majority)
-        if (majority != undefined) {
+        let majority = changer.majority(channel, rej);
+        log("Changing Channel \n - name: " + channel.name + "\n - id: " + channel.id + "\n - majority: " + JSON.stringify(majority))
+        if (majority != undefined && !channel.name.includes(majority.game)) {
+            // Reset the channel, to prevent adding onto the name
+            changer.reset(channel)
+            // Save the channel name for resets
             changer.names.set(channel.id, channel.name)
+            let abbreviated = changer.abbreviations[majority.game.toLowerCase()]
+            log(' - abbreviated: ' + abbreviated)
             let newName = template
             .replace(/(X)/, channel.name)
-            .replace(/(Y)/, majority.game)
-            console.log(" - new Name: " + newName)
+            .replace(/(Y)/, abbreviated ? abbreviated : majority.game)
+            log(" - new name '" + newName + "'")
             channel.setName(newName)
             .then(res)
-            .catch(rej)
-        }
+            .catch(rej);
+        } else changer.reset(channel);
     })
 }
 
@@ -79,7 +92,18 @@ changer.reset = (channel, callback) => {
         if (name != undefined) {
             channel.setName(name)
             .catch(callback)
-        } else new Error("Channel was never set to begin with.\n - ID: " + channel.id)
+        }
+}
+
+/**
+ * @method shorten
+ * @desc Shorten a game's name (abbreviations)
+ * @param {String} name
+ * @param {String} shorten
+ */
+changer.shorten = (name, shorten) => {
+        changer.abbreviations[name.toLowerCase()] = shorten
+        log("Abbreviated " + name + " as " + shorten)
 }
 
 module.exports = changer

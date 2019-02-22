@@ -1,4 +1,10 @@
 module.exports = {
+    "storage": {
+        "abbreviations": require('./storage/abbreviations.json'),
+        "admin": require('./storage/admin.json').admin,
+        "channels": require('./storage/channels.json').channels,
+        "config": require('./storage/config.json')
+    },
     "util": {
         data: require("./util/data.js"),
         logger: require("./util/logger.js")
@@ -6,9 +12,4 @@ module.exports = {
     "lib": {
         changer: require('./changer.js')
     },
-    "storage": {
-        abbreviations: require('./storage/abbreviations.json'),
-        channels: require('./storage/channels.json'),
-        config: require('./storage/config.json')
-    }
 }
