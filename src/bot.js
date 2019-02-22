@@ -17,7 +17,7 @@ module.exports = (token, callback) => {
     client.login(token)
         .then(() => {
             changer.abbreviations = abbreviations
-            log("abbreviations imported", abbreviations)
+            log("Ready")
             client.on('message', msg => {
                 if (!msg.content.includes(" ")) msg.content += " "
                 let prefix = msg.content.split(" ")[0]
@@ -43,10 +43,33 @@ module.exports = (token, callback) => {
                             msg.reply("Template: `" + config.template  + "`")
                         break;
                     case "!addadmin":
-                        admin.push(msg.author.id)
-                        storage.set("admin.json", {"admin": admin})
+                            if (msg.mentions.users.first() != undefined) {
+                                if (!admin.includes(msg.mentions.users.first().id)) {
+                                    admin.push(msg.mentions.users.first().id)
+                                    log("Added admin " + msg.mentions.users.first().username)
+                                    storage.set("admin.json", {"admin": admin})
+                                }
+                            } else msg.reply("Mention somebody")
                         break;
                     case "!remadmin":
+                        break;
+                    case "!admin":
+                        let adm = ""
+                        admin.forEach(ad => {
+                            let x = client.users.get(ad)
+                            if (x != undefined) {
+                                adm += x.username + ", "
+                            }
+                        })
+                        msg.reply("Admin: " + adm)
+                        break;
+                    case "!channels":
+                        let str = ""
+                        channels.forEach(channel => {
+                            let x = client.channels.get(channel)
+                            if (x != undefined) str += x.name + ", "
+                        })
+                        msg.reply("Channels: " + str)
                         break;
                 }
                 if (msg.member.voiceChannel) {

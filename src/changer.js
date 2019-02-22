@@ -3,7 +3,6 @@
  * @author devr2k
  */
 const Discord = require('discord.js');
-const log = console.log
 const changer = {
     names: new Map(),
     abbreviations: {}
@@ -41,7 +40,7 @@ changer.majority = (channel, callback) => {
                 "count": sorted[sorted.length - 1][0],
                 // Other games being played and counted
                 "games": games
-            } : {"game": "", "count": 0, "games": games}
+            } : undefined
         } else callback(new Error("No members in this VoiceChannel.\n - ID: " + channel.id))
 
     } else callback(new Error("Channel provided is not a VoiceChannel."))
@@ -61,22 +60,19 @@ changer.majority = (channel, callback) => {
 changer.change = (channel, template = "X - Y") => {
     return new Promise((res, rej) => {
         let majority = changer.majority(channel, rej);
-        log("Changing Channel \n - name: " + channel.name + "\n - id: " + channel.id + "\n - majority: " + JSON.stringify(majority))
         if (majority != undefined && !channel.name.includes(majority.game)) {
             // Reset the channel, to prevent adding onto the name
             changer.reset(channel)
             // Save the channel name for resets
             changer.names.set(channel.id, channel.name)
             let abbreviated = changer.abbreviations[majority.game.toLowerCase()]
-            log(' - abbreviated: ' + abbreviated)
             let newName = template
             .replace(/(X)/, channel.name)
             .replace(/(Y)/, abbreviated ? abbreviated : majority.game)
-            log(" - new name '" + newName + "'")
             channel.setName(newName)
             .then(res)
             .catch(rej);
-        } else changer.reset(channel);
+        } else if (majority == undefined) changer.reset(channel);
     })
 }
 
@@ -102,8 +98,7 @@ changer.reset = (channel, callback) => {
  * @param {String} shorten
  */
 changer.shorten = (name, shorten) => {
-        changer.abbreviations[name.toLowerCase()] = shorten
-        log("Abbreviated " + name + " as " + shorten)
+    changer.abbreviations[name.toLowerCase()] = shorten
 }
 
 module.exports = changer
