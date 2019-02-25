@@ -1,2 +1,1 @@
-var bot_token = ("your token here")
-exports.bot_token = bot_token
+exports.bot_token = "Your token here"
