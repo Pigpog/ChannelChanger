@@ -63,18 +63,22 @@ module.exports = (token, callback) => {
               switch (prefix) {
                 case "!addvc":
                   worker.add(msg.guild.id, "channels", msg.member.voiceChannelID)
+                  msg.reply("Channel added")
                   log(" # Whitelisted Channel \n - name: #" + msg.member.voiceChannel.name + "@" + msg.guild.name + "\n - id: " + msg.member.voiceChannelID)
                   break;
                 case "!remvc":
                   config.channels.delete(msg.member.voiceChannelID)
                   worker.set(msg.guild.id, "channels", config.channels)
+                  msg.reply("Channel removed")
                   log(" # Blacklisted Channel \n - name: #" + msg.member.voiceChannel.name + "@" + msg.guild.name + "\n - id: " + msg.member.voiceChannelID)
                   break;
                 case "!test":
                   changer.change(msg.member.voiceChannel)
+                  msg.reply("Done")
                   break;
                 case "!reset":
                   changer.reset(msg.member.voiceChannel)
+                  msg.reply("Done")
                   break;
               }
             }
@@ -120,6 +124,7 @@ module.exports = (token, callback) => {
                 if (body.length > 0) {
                   if (!isNaN(body)) {
                     log(" # Set majority \n - majority: " + parseInt(body))
+                    msg.reply("New majority set. `" + body + "`")
                     worker.set(msg.guild.id, "majority", parseInt(body))
                   } else msg.reply("Majority `" + config.majority + "`");
                 } else msg.reply("Majority `" + config.majority + "`");
