@@ -1,5 +1,6 @@
 # Channel Changer 1.0.0
 Discord bot that changes voice channel names based on what games people are playing in it
+ [![example](./example.png)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
 ## Commands
  - `!test` Test a VoiceChannel
  - `!reset` Reset a VoiceChannel
@@ -23,5 +24,4 @@ Channel Changer uses RegEx to replace the channel's name with the most played ga
 ### Starting the Bot
 `npm start`
 
-### Invite the Bot!
-[Coming soon]
+### [Invite the Bot!](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
