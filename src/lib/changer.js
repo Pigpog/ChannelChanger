@@ -1,8 +1,9 @@
 const Discord = require('discord.js');
 const Config = require('./Config.js');
 const MostPlayed = require('./MostPlayed.js');
+const fs = require('fs');
 const changer = {
-  names: new Map()
+  names: new Map(require('./names.json').names)
 }
 
 /**
@@ -60,6 +61,14 @@ changer.reset = (channel, callback) => {
     channel.setName(oldName)
       .catch(callback)
   }
+}
+
+/**
+ * @method store
+ * Saves the names that are mapped
+ */
+changer.store = () => {
+  fs.writeFileSync(__dirname + "/names.json", JSON.stringify({"names": Array.from(changer.names)}));
 }
 
 module.exports = changer;

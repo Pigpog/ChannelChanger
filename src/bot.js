@@ -156,8 +156,9 @@ module.exports = (token, callback) => {
         if (newMember.voiceChannel) scan(newMember);
       })
       process.on('SIGINT', () => {
-        worker.save()
-        process.exit()
+        worker.save();
+        changer.store();
+        process.exit();
       });
     })
     .catch(callback)
