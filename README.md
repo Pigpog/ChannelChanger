@@ -1,5 +1,4 @@
-# Channel Changer
-**0.9.3:** Candidate
+# Channel Changer 1.0.0
 ## Commands
  - `!test` Test a VoiceChannel
  - `!reset` Reset a VoiceChannel
@@ -7,8 +6,7 @@
  - `!remvc` Blacklist a VoiceChannel while in it
  - `!addadmin @member` Add an admin
  - `!remadmin @member` Remove an admin
- - `!settemplate String` Set the RegEx Template, see Template Guide below
- - `!gettemplate` Get the RegEx Template
+ - `!template String` Set the RegEx Template, see Template Guide below. If no String is provided it will reply with the current template.
  - `!majority Number` Set the majority needed to change the channel's name. If no number is provided it will reply with the current majority
  - `!shorten "name" "new name"` Abbreviates a name
 

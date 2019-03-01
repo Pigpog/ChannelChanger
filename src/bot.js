@@ -86,12 +86,13 @@ module.exports = (token, callback) => {
                 log(" # Abbreviation added \n - name: " + name + "\n - shorten: " + shorten)
                 config.abbreviations.push([name, shorten])
                 break;
-              case "!settemplate":
-                worker.set(msg.guild.id, "template", body)
-                log(" # Set Template \n - template: " + body)
-                break;
-              case "!gettemplate":
-                msg.reply("template ```" + config.template + "```")
+              case "!template":
+              if (body.length > 0)  {
+                if (body.includes("X") || body.includes("Y")) {
+                  worker.set(msg.guild.id, "template", body)
+                  log(" # Set Template \n - template: " + body)
+                } else msg.reply("template ```" + config.template + "```");
+              } else msg.reply("template ```" + config.template + "```");
                 break;
               case "!addadmin":
                 if (msg.mentions.members.size > 0) {
