@@ -66,6 +66,7 @@ module.exports = (token, callback) => {
                   log(" # Whitelisted Channel \n - name: #" + msg.member.voiceChannel.name + "@" + msg.guild.name + "\n - id: " + msg.member.voiceChannelID)
                   break;
                 case "!remvc":
+                  config.channels.delete(msg.member.voiceChannelID)
                   worker.set(msg.guild.id, "channels", config.channels)
                   log(" # Blacklisted Channel \n - name: #" + msg.member.voiceChannel.name + "@" + msg.guild.name + "\n - id: " + msg.member.voiceChannelID)
                   break;
@@ -103,21 +104,23 @@ module.exports = (token, callback) => {
                 }
                 break;
               case "!remadmin":
+                log(" # Removing admin")
                 if (msg.mentions.members.size > 0) {
                   msg.mentions.members.forEach(member => {
                     config.admin.delete(member.id)
+                    log(" - admin: " + member.user.username + "@" + member.guild.name)
                   });
                   worker.set(msg.guild.id, "admin", config["admin"]);
                 }
                 break;
               case "!majority":
-              if (body.length > 0) {
-                if (!isNaN(body)) {
-                  log(" # Set majority \n - majority: " + parseInt(body))
-                  worker.set(msg.guild.id, "majority", parseInt(body))
+                if (body.length > 0) {
+                  if (!isNaN(body)) {
+                    log(" # Set majority \n - majority: " + parseInt(body))
+                    worker.set(msg.guild.id, "majority", parseInt(body))
+                  } else msg.reply("Majority `" + config.majority + "`");
                 } else msg.reply("Majority `" + config.majority + "`");
-              } else msg.reply("Majority `" + config.majority + "`");
-              break;
+                break;
             }
           }
 

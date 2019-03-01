@@ -12,6 +12,7 @@ function init() {
             build()
         }
     })
+    console.log(" # Ready!")
 }
 
 /**
