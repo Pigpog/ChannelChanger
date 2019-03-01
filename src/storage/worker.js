@@ -58,8 +58,13 @@ worker.save = () => {
 worker.load = () => {
     fs.readdirSync(worker.dir).forEach(file => {
         try {
-            let config = JSON.parse(file);
-            worker.guilds.set(config.id, config);
+            let temp = fs.readFile(worker.dir + file, (err, data) => {
+              if (err) console.log(err.message)
+              else {
+                let config = JSON.parse(data)
+                worker.guilds.set(config.id, new GuildConfig(config.id, config));
+              }
+            })
         } catch (err) {
             console.log(err.message)
         }
