@@ -1,4 +1,5 @@
 # Channel Changer 1.0.0
+Discord bot that changes voice channel names based on what games people are playing in it
 ## Commands
  - `!test` Test a VoiceChannel
  - `!reset` Reset a VoiceChannel

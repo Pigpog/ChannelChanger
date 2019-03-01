@@ -1,7 +1,7 @@
 {
   "name": "channelchanger",
   "version": "1.0.0",
-  "description": "Channel Changer bot",
+  "description": "Discord bot that changes voice channel names based on what games people are playing in it",
   "main": "start.js",
   "dependencies": {
     "discord.js": "^11.4.2"
