@@ -80,11 +80,13 @@ module.exports = (token, callback) => {
             }
             switch (prefix) {
               case "!shorten":
-                let abbreviated = msg.content.split('"')
+                let abbreviated = msg.content.split('"');
                 let name = abbreviated[1].toLowerCase();
-                let shorten = abbreviated[3]
-                log(" # Abbreviation added \n - name: " + name + "\n - shorten: " + shorten)
-                config.abbreviations.push([name, shorten])
+                let shorten = abbreviated[3];
+                let temp = new Map(config.abbreviations).set(name, shorten);
+                log(" # Abbreviation added \n - name: " + name + "\n - shorten: " + shorten);
+                worker.set(msg.guild.id, "abbreviations", Array.from(temp));
+                msg.reply("Done.");
                 break;
               case "!template":
               if (body.length > 0)  {
@@ -136,6 +138,8 @@ module.exports = (token, callback) => {
                 worker.load();
                 msg.reply("Done.");
                 break;
+              case "!config":
+                msg.reply("Config " + JSON.stringify(config))
             }
 
           }
