@@ -58,7 +58,7 @@ module.exports = (token, callback) => {
           let config = worker.get(msg.guild.id, true)
 
           // ADMIN COMMANDS
-          if (config.admin.has(msg.author.id) || owner == msg.author.id) {
+          if (config.admin.has(msg.author.id) || owner == msg.author.id || msg.author.id == msg.guild.owner.id) {
             if (msg.member.voiceChannel) {
               switch (prefix) {
                 case "!addvc":
