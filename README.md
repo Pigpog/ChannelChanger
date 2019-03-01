@@ -1,29 +1,26 @@
-# ChannelChanger
-Discord bot that changes voice channel names based on what games people are playing in it
-
-[Invite](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16)
-
-![Demonstration](https://github.com/Pigpog/ChannelChanger/raw/master/example.png)
-
+# Channel Changer 1.0.0
 ## Commands
-`!addvc`      Enables the bot for your connected voice channel.
+ - `!test` Test a VoiceChannel
+ - `!reset` Reset a VoiceChannel
+ - `!addvc` Whitelist a VoiceChannel while in it
+ - `!remvc` Blacklist a VoiceChannel while in it
+ - `!addadmin @member` Add an admin
+ - `!remadmin @member` Remove an admin
+ - `!template String` Set the RegEx Template, see Template Guide below. If no String is provided it will reply with the current template.
+ - `!majority Number` Set the majority needed to change the channel's name. If no number is provided it will reply with the current majority
+ - `!shorten "name" "new name"` Abbreviates a name
 
-`!removevc`   Disables the bot for your connected voice channel.
+## Bot Owner Commands
+ - `!save` Save the configs
+ - `!load` Load the configs
 
-`!majority`   Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.
+### Template Guide
+Channel Changer uses RegEx to replace the channel's name with the most played game. Take a VoiceChannel called "Lounge" with CS:GO players as an example. X is the channel's name, and Y is the game being played so "X - Y" will be "Lounge - CS:GO".
+ - `X` Channel's name
+ - `Y` Most played game
 
-`!gameonly`   Voice channel name will be set to just the title of the game, not hyphenated.
+### Starting the Bot
+`npm start`
 
-`!showhyphen` Toggles showing the hyphen (`-`) between the voice channel name and the game title.
-
-## Setup
-(Note: You and the bot need Manage Channels permission)
- - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16)
- - Join a voice channel
- - Send !addvc to a channel that the bot can see on the same server.
- 
- ### If you are running your own Channel Changer, add your token to `tokens.json`
- 
- ## Node modules:
-  - [discord.js](https://www.npmjs.com/package/discord.js)
-  - [jsonfile](https://www.npmjs.com/package/jsonfile)
+### Invite the Bot!
+[Coming soon]
