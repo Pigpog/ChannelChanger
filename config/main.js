@@ -1,15 +1,12 @@
 module.exports = {
-	"whitelist": {
-		"channels": true,
-		"admin": true
-	},
-	// This will ignore seperate Guild preferences if provided true. Instead of using preferences it will use the Default Config or Defualt Abbreviations
-	"centralize": {
-		"configs": false,
-		"abbreviations": false
-	},
-
-	// If true it will log everything that is happening.
-	// otherwise only Errors will appear
-	"debug": false
+    "whitelist": {
+        "channels": false,
+        "admin": false
+    },
+    // If true, it will deny Guilds to have their own configs, and instead bot will use src/storage/guilds/0.json
+    "centralize": {
+        "configs": false,
+        "abbreviations": false
+    },
+    "debug": false // if true it will log everything that is happening. Otherwise it will only log Errors
 }
