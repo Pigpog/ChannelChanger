@@ -12,7 +12,7 @@ Discord bot that changes voice channel names based on what games people are play
 
 `!majority`   Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.
 
-`!template` Sets the template. Ex: `!template X - Y`. If no new template if provided it will reply with the currently set template.
+`!template` Sets the template. Ex: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
 
 ## Setup
 (Note: You and the bot need Manage Channels permission)
