@@ -1,4 +1,4 @@
-# Channel Changer 1.0.0
+# Channel Changer
 Discord bot that changes voice channel names based on what games people are playing in it
  [![example](./example.png)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
 ## Commands
