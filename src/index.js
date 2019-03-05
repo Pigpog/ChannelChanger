@@ -13,7 +13,6 @@ module.exports = {
 		'guilds': __dirname + '/storage/guilds/',
 		// Default Config
 		'config': require('./storage/guilds/0.json'),
-		// Defaut Abbreviations
 		'abbreviations': require('./storage/guilds/0.json')
 	}
 }
