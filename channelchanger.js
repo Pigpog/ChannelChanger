@@ -208,8 +208,11 @@ client.on('message', message =>{
 							if(newTemplate.length<100){
 								if(newTemplate.includes("Y")){
 									channels[message.member.voiceChannelID][2]=newTemplate
-									delete channels[message.member.voiceChannelID][3] //Get rid of archaic stuff. Not needed if using fresh database.
+									delete channels[message.member.voiceChannelID][3] //Get rid of archaic stuff. Line not needed if using fresh database.
 									message.reply("The template for `"+channels[message.member.voiceChannelID][0]+"` is now "+newTemplate)
+									if(newTemplate.includes(message.member.voiceChannel.name)){
+										message.channel.send("*Pro-tip: Use 'X' in your template in place of the channel name.*")
+									}
 									autosave()
 								}else{
 									message.reply("The template must include `Y`.")
