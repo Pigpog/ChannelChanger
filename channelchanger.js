@@ -110,7 +110,6 @@ function scanOne(channelId){
 				}
 			}else{
 				if(channel.name!==channelArray[0]){
-
 					channel.setName(channelArray[0])
 				}
 			}
