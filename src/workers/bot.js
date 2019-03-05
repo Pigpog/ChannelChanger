@@ -2,7 +2,7 @@
  * Default Discord Bot based around this library.
  * @author devr2k
  * This is a Message-based interface every command it listens for is in a switch so it's easily organized if you're looking for a command provided in the readme just search for it
- * The function scan does everything that is needed when changing a channel, so if you don't like how the bot uses channel changer then change @funciton scan()
+ * The function scan does everything that is needed when changing a channel, so if you don't like how the bot uses channel presence then change @funciton scan()
  */
 const Discord = require('discord.js');
 const client = new Discord.Client();
@@ -196,7 +196,7 @@ module.exports = (token, callback) => {
                                 let channels = client.channels.size
                                 msg.reply({
                                     embed: new Discord.RichEmbed({
-                                        "title": "Channel Changer - Info",
+                                        "title": "Channel Presence - Info",
                                         "description": "\n**Guilds:** " + guilds + "\n**Channels**: " + channels,
                                         "color": 10025880
                                     })

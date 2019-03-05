@@ -1,8 +1,8 @@
-# Channel Changer
-Changes a VoiceChannel's name based upon the most played game. The most played game is determined by percentage which can be set with the `!majority` command (see below). This bot has other features like abbreviations for each game, channels & admin whitelist. Toggling the following commands (if you self-host the bot) access config/main.js and tweak to your liking
+# Channel Presence
+Changes a VoiceChannel's name based upon the most played game. The most played game is determined by percentage which can be set with the `!majority` command (see below). This bot has other features like abbreviations, templates, channels, and admin whitelist. Templates are the best way to customize the way you want the bot to change the channel. See Template guide for more info.
 
 ## [Invite the Bot!](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
- [![example](https://github.com/devr2k/ChannelChanger/blob/master/example.png?raw=true)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16) 
+Test it yourself!
 
 ## Commands
 Not all commands will work according to how the bot is preferenced.
@@ -25,9 +25,9 @@ Not all commands will work according to how the bot is preferenced.
  - `!config` Replies with the config being used
 
 ### Template Guide
-Channel Changer uses RegEx to replace the channel's name with the most played game. Take a VoiceChannel called "Lounge" with CS:GO players as an example. X is the channel's name, and Y is the game being played so "X - Y" will be "Lounge - CS:GO".
+Channel Presence uses RegEx to replace the channel's name with the most played game. Take a VoiceChannel called "Lounge" with CS:GO players as an example. X is the channel's name, and Y is the game being played so "X - Y" will be "Lounge - CS:GO".
  - `X` Channel's name
  - `Y` Most played game
 
-### Starting the Bot
-`npm start`
+## Self Hosting
+To start the bot simply type `npm start`. All configurations are done in config/main.js.

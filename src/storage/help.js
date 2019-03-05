@@ -3,7 +3,7 @@ const {
     RichEmbed
 } = require('discord.js');
 module.exports = new RichEmbed({
-    "title": "Channel Changer - Help",
+    "title": "Channel Presence - Help",
     "description": "Some commands may not work according to how the preferences are setup.",
     "color": 4374779,
     "fields": [{
