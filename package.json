@@ -1,14 +1,14 @@
 {
   "name": "channelchanger",
   "version": "2.0.0",
-  "description": "Discord bot that changes voice channel names based on what games people are playing in it",
+  "description": "Changes a VoiceChannel's name based upon the most played game",
   "main": "start.js",
   "dependencies": {
     "discord.js": "^11.4.2"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "node src/bot.js",
+    "test": "node src/index.js",
     "start": "npm i",
     "postinstall": "node ./start.js"
   },
@@ -17,7 +17,7 @@
     "url": "git+https://github.com/devr2k/ChannelChanger.git"
   },
   "author": "devr2k",
-  "license": "BSD-2-Clause",
+  "license": "UNLICENSED",
   "bugs": {
     "url": "https://github.com/devr2k/ChannelChanger/issues"
   },
