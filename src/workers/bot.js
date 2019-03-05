@@ -192,25 +192,12 @@ module.exports = (token, callback) => {
                                 msg.reply("Config ```json\n" + str + "```")
                                 break;
                             case "!info":
-                                let guilds = 0
-                                let channels = 0
-                                let admin = 0
-                                Array.from(worker.guilds).forEach(config => {
-                                    if (config[0] != "0") {
-                                        if (!whitelist.channels) {
-                                            admin += (config[1].admin.size) + 1 // +1 guild owner
-                                            channels += config[1].channels.size
-                                            guilds += 1
-                                        } else {
-                                            let guil = client.guilds.get(config[0])
-                                            if (guil != undefined) channels += guil.channels.size
-                                        }
-                                    }
-                                })
+                                let guilds = client.guilds.size
+                                let channels = client.channels.size
                                 msg.reply({
                                     embed: new Discord.RichEmbed({
                                         "title": "Channel Changer - Info",
-                                        "description": "\n**Guilds:** " + guilds + "\n**Channels**: " + channels + "\n**Admin**: " + admin,
+                                        "description": "\n**Guilds:** " + guilds + "\n**Channels**: " + channels,
                                         "color": 10025880
                                     })
                                 })
