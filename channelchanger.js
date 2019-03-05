@@ -109,7 +109,10 @@ function scanOne(channelId){
 					channel.setName(channelArray[0])
 				}
 			}else{
-				channel.setName(channelArray[0])
+				if(channel.name!==channelArray[0]){
+
+					channel.setName(channelArray[0])
+				}
 			}
 		}
 	}else{
@@ -270,4 +273,4 @@ client.on("guildCreate", guild=>{
 
 process.on('unhandledRejection', function (err) {
 
-}); 
+});
