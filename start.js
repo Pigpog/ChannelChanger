@@ -1,18 +1,22 @@
 const readline = require('readline');
-const bot = require('./src/bot.js');
+const bot = require('./src/workers/bot.js');
 const fs = require('fs');
-var config = require(__dirname + "/src/storage/bot.json");
+const index = require('./src/index.js');
+var config = index.storage.bot;
+var main = index.config.main
+
 /**
  * Initial function
  */
 function init() {
     bot(config.token, err => {
-        if (err) {
-            console.log(err.message)
-            build()
+        if (main.debug) {
+            console.log(err.message);
+        }
+        if (err.message.includes("token") || err.message.includes("login")) {
+            build();
         }
     })
-    console.log(" # Ready!")
 }
 
 /**
@@ -28,8 +32,8 @@ function build() {
             rl.on('close', () => {
                 config.token = ans
                 fs.writeFile(__dirname + "/src/storage/bot.json", JSON.stringify(config), err => {
-                    if (err) console.log("Error " + err.message)
-                    else init()
+                    if (err) console.log("Error " + err.message);
+                    else init();
                 })
             })
             rl.close()

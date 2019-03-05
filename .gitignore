@@ -1,3 +1,7 @@
+# Custom
+src/storage/
+config/
+
 # Logs
 logs
 *.log
