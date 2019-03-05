@@ -2,7 +2,7 @@
 Discord bot that changes voice channel names based on what games people are playing in it
 
 ## [Invite the Bot!](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
- [![example](./example.png)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16) 
+ [![example](https://github.com/devr2k/ChannelChanger/blob/master/example.png?raw=true)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16) 
 
 ## Commands
 Not all commands will work according to how the bot is preferenced.
