@@ -102,6 +102,8 @@ function scanOne(channelId){
 						channel.setName(channelArray[0]+" "+newTitle)
 					}else if(channelArray[2]){ //Template - New setting
 						channel.setName(channelArray[2].replace(/X/,channelArray[0]).replace(/Y/,newTitle))
+					}else{
+						channel.setName(channelArray[0] + " - " + newTitle)
 					}
 				}else{
 					channel.setName(channelArray[0])
