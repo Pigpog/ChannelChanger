@@ -13,7 +13,7 @@ function init() {
         if (main.debug) {
             console.log(err.message);
         }
-        if (err.message.includes("token")) {
+        if (err.message.includes("token") || err.message.includes("login")) {
             build();
         }
     })
