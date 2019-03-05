@@ -80,7 +80,7 @@ function scanAll(){
 function scanOne(channelId){
 	var channel=client.channels.get(channelId);
 	var channelArray=[]
-	if(channels[channelId]){
+	if(channels[channelId]){ //Store the channel's settings in a variable to prevent crashes
 		channelArray=channels[channelId]
 	}
 	if(channel){
@@ -96,11 +96,11 @@ function scanOne(channelId){
 				}
 				var newTitle=majority(games,channel.members.array().length,channelArray[1] || 0.5)
 				if(!noFlyList.includes(newTitle)){
-					if(channelArray[2]===1){  //template or 
+					if(channelArray[2]===1){  // "gameonly" archaic setting
 						channel.setName(newTitle)
-					}else if(channelArray[3]===1){
+					}else if(channelArray[3]===1){ // "showhyphen" archaic setting
 						channel.setName(channelArray[0]+" "+newTitle)
-					}else if(channelArray[2]){
+					}else if(channelArray[2]){ //Template - New setting
 						channel.setName(channelArray[2].replace(/X/,channelArray[0]).replace(/Y/,newTitle))
 					}
 				}else{
@@ -116,7 +116,7 @@ function scanOne(channelId){
 		autosave()
 	}
 }
-
+//update affected channels when someone leaves or joins
 client.on('voiceStateUpdate', (oldMember,newMember) => {
 	if(oldMember.voiceChannel!==newMember.voiceChannel){ // dont respond to mute/deafen
 		if (oldMember.voiceChannel){
