@@ -5,8 +5,7 @@ module.exports = {
 	"lib": {
 		'changer': require('./lib/changer.js'),
 		'Config': require('./lib/Config.js'),
-		'MostPlayed': require('./lib/MostPlayed.js'),
-		'names': require('./lib/names.json')
+		'MostPlayed': require('./lib/MostPlayed.js')
 	},
 	"storage": {
 		'dir': __dirname + '/storage/',
