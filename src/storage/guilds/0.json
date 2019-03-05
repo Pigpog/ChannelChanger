@@ -1,0 +1,10 @@
+{
+    "abbreviations": [
+        ["counter-strike: global offensive", "CS:GO"]
+    ],
+    "majority": 100,
+    "template": "X [Y]",
+    "id": "0",
+    "admin": [],
+    "channels": []
+}
