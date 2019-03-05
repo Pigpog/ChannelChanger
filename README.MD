@@ -1,5 +1,6 @@
 # ChannelChanger
-Discord bot that changes voice channel names based on what games people are playing in it
+Discord bot that automatically updates voice channel names based on what games people are playing in it.
+
 
 [Invite](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16)
 
@@ -12,15 +13,13 @@ Discord bot that changes voice channel names based on what games people are play
 
 `!majority`   Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.
 
-`!gameonly`   Voice channel name will be set to just the title of the game, not hyphenated.
+`!template` Sets the template. Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
 
-`!showhyphen` Toggles showing the hyphen (`-`) between the voice channel name and the game title.
-
-## Setup
+## Usage
 (Note: You and the bot need Manage Channels permission)
  - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16)
  - Join a voice channel
- - Send !addvc to a channel that the bot can see on the same server.
+ - Send !addvc to a channel that the bot can see on the same server
  
  ### If you are running your own Channel Changer, add your token to `tokens.json`
  
