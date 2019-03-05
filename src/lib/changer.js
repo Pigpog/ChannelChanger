@@ -29,13 +29,13 @@ changer.change = (channel, config = new Config()) => {
         if (channel instanceof Discord.VoiceChannel) {
             let mostPlayed = new MostPlayed(channel).mostPlayed;
             if (mostPlayed != undefined) {
-                let shorten = new Map(config.abbreviations).get(mostPlayed.name.toLowerCase())
+                let shorten = new Map(config.abbreviations).get(mostPlayed.name.toLowerCase());
                 if (!channel.name.includes(mostPlayed.name) && !channel.name.includes(shorten)) {
-                    if (mostPlayed.percent <= config.majority) {
+                    if (mostPlayed.percent >= config.majority) {
                         changer.names.set(channel.id, channel.name);
                         let newName = config.template
-                            .replace(/(X)/, channel.name)
                             .replace(/(Y)/, shorten ? shorten : mostPlayed.name)
+                            .replace(/(X)/, channel.name)
                         channel.setName(newName)
                             .then(res)
                             .catch(rej)

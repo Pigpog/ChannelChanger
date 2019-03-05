@@ -8,12 +8,12 @@ module.exports = {
 		'MostPlayed': require('./lib/MostPlayed.js')
 	},
 	"storage": {
-		'dir': __dirname + '/storage/',
+		'abbreviations': require('./storage/guilds/0.json'),
 		'bot': require('./storage/bot.json'),
+		'config': require('./storage/guilds/0.json'), // Default Config
+		'dir': __dirname + '/storage/',
 		'guilds': __dirname + '/storage/guilds/',
-		// Default Config
-		'config': require('./storage/guilds/0.json'),
-		'abbreviations': require('./storage/guilds/0.json')
+		'help': require('./storage/help.js')
 	}
 }
 

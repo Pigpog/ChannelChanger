@@ -1,7 +1,9 @@
 # Channel Changer
 Discord bot that changes voice channel names based on what games people are playing in it
  [![example](./example.png)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
+ 
 ## Commands
+ - `!help` For a list of commands in Discord.
  - `!test` Test a VoiceChannel while in it
  - `!reset` Reset a VoiceChannel while in it
  - `!addvc` Whitelist a VoiceChannel while in it
