@@ -1,5 +1,5 @@
 # Channel Changer
-Discord bot that changes voice channel names based on what games people are playing in it
+Changes a VoiceChannel's name based upon the most played game. The most played game is determined by percentage which can be set with the `!majority` command (see below). This bot has other features like abbreviations for each game, channels & admin whitelist. Toggling the following commands (if you self-host the bot) access config/main.js and tweak to your liking
 
 ## [Invite the Bot!](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16)
  [![example](https://github.com/devr2k/ChannelChanger/blob/master/example.png?raw=true)](https://discordapp.com/oauth2/authorize?client_id=551085114004602882&scope=bot&permissions=16) 
@@ -31,4 +31,3 @@ Channel Changer uses RegEx to replace the channel's name with the most played ga
 
 ### Starting the Bot
 `npm start`
-
