@@ -111,7 +111,9 @@ module.exports = (token, callback) => {
                         }
                         switch (prefix) {
                             case "!help":
-                                msg.reply({embed: index.storage.help})
+                                msg.reply({
+                                    embed: index.storage.help
+                                })
                                 break;
                             case "!shorten":
                                 if ((!centralize.abbreviations ? (bot.owner == msg.author.id) : true)) {
@@ -179,15 +181,40 @@ module.exports = (token, callback) => {
                                 msg.reply("Done.");
                                 break;
                             case "!config":
-                                let str = "{"
+                                let str = "{";
                                 let i = 0
                                 Object.keys(config).forEach(key => {
                                     i++
                                     str += "\n\t \"" + key + "\": " + (config[key] instanceof String ? "\"" + config[key] + "\"" : JSON.stringify(config[key]))
-                                    if (i != Object.keys(config).length) str += "," 
+                                    if (i != Object.keys(config).length) str += ","
                                 })
                                 str += "\n}"
                                 msg.reply("Config ```json\n" + str + "```")
+                                break;
+                            case "!info":
+                                let guilds = 0
+                                let channels = 0
+                                let admin = 0
+                                Array.from(worker.guilds).forEach(config => {
+                                    if (config[0] != "0") {
+                                        if (!whitelist.channels) {
+                                            admin += (config[1].admin.size) + 1 // +1 guild owner
+                                            channels += config[1].channels.size
+                                            guilds += 1
+                                        } else {
+                                            let guil = client.guilds.get(config[0])
+                                            if (guil != undefined) channels += guil.channels.size
+                                        }
+                                    }
+                                })
+                                msg.reply({
+                                    embed: new Discord.RichEmbed({
+                                        "title": "Channel Changer - Info",
+                                        "description": "\n**Guilds:** " + guilds + "\n**Channels**: " + channels + "\n**Admin**: " + admin,
+                                        "color": 10025880
+                                    })
+                                })
+                                break;
                         }
                     }
                 }

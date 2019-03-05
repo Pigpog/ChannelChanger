@@ -19,6 +19,7 @@ Not all commands will work according to how the bot is preferenced.
 
 
 ### Bot Owner Commands
+ - `!info` Bot summary info
  - `!save` Save the configs
  - `!load` Load the configs
  - `!config` Replies with the config being used
