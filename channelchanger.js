@@ -36,7 +36,6 @@ function save(){
 			console.log(err)
 		}
 	})
-	keys=Object.keys(channels)
 	changes=false
 	console.log("Autosave Complete")
 }
