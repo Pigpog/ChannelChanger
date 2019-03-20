@@ -69,9 +69,9 @@ function majority(array,userCount,majorityPercent){
 }
 // loops through each channel on the list and passes it to scanOne
 function scanAll(){
-	setTimeout(scanAll,keys.length*500) //timed loop
+	setTimeout(scanAll,keys.length*200) //timed loop
 	for(var i=0;i<keys.length;i++){
-		setTimeout(scanOne,i*500,keys[i]) //give each channel 500ms to complete
+		setTimeout(scanOne,i*200,keys[i]) //give each channel 500ms to complete
 	}
 }
 // Checks and sets the name of a voice channel. The core functionality.
