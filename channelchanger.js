@@ -4,10 +4,10 @@ client.on('ready', () => {
 	console.log('Ready!');
 	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
 	//list connected guilds and their ID's
-	for(var i=0;i<client.guilds.array().length;i++){
-		console.log(client.guilds.array()[i].name+" id: "+client.guilds.array()[i].id)
-	}
-	setTimeout(scanAll,4000)
+	client.guilds.forEach(guild=>{
+		console.log(guild.name+" id: "+guild.id)	
+	})
+	setTimeout(scanAll,15000)
 });
 const tokens = require('./tokens.js');
 client.login(tokens.bot_token);
@@ -36,33 +36,35 @@ function save(){
 			console.log(err)
 		}
 	})
+	keys=Object.keys(channels)
 	changes=false
 	console.log("Autosave Complete")
 }
 
 /*
-* Calculates what to set the channel name to
-* array: the array of game names
-* userCount: the number of people in the vc
-* majorityPercent: the `!majority` value for the channel
+* calculates returns what to set the channel name to
+* channel: the voice channel to calculate the majority game in
+* majorityPercent: the `!majority` value for the channel, as a decimal
 */
-function majority(array,userCount,majorityPercent){
-	var items=new Object()
-	var majority=""
-	var majorityNumber=0
-	//quantify each game in the items object
-	for (var i = 0; i < array.length; i++){
-		items[array[i]]=((items[array[i]] || 0)+1)
-	}
-	//find majority
-	for(var key in items){
-		if(items[key] >= majorityNumber){
-			majority=key;
-			majorityNumber=items[key]
+function majority(channel,majorityPercent){
+	var games = {"nogame":0};
+	var majorityName="";
+	var majorityNumber=0;
+	channel.members.forEach(function(member){
+		if(!member.user.bot){ // ignore bots
+			if(member.user.presence.game){
+				games[member.presence.game.name]=(games[member.presence.game.name] || 0) + 1;
+				if(games[member.presence.game.name]>majorityNumber){
+					majorityName=member.presence.game.name;
+					majorityNumber=games[member.presence.game.name];
+				}
+			}else{
+				games["nogame"]+=1
+			}
 		}
-	}
-	if((majorityNumber / userCount) > majorityPercent){
-		return(majority)
+	})
+	if((majorityNumber / channel.members.size) > majorityPercent){
+		return(majorityName)
 	}else{
 		return("nogame")
 	}
@@ -71,45 +73,41 @@ function majority(array,userCount,majorityPercent){
 function scanAll(){
 	setTimeout(scanAll,keys.length*200) //timed loop
 	for(var i=0;i<keys.length;i++){
-		setTimeout(scanOne,i*200,keys[i]) //give each channel 500ms to complete
+		setTimeout(scanOne,i*200,keys[i]) //give each channel 200ms to complete
 	}
 }
 // Checks and sets the name of a voice channel. The core functionality.
 // channelId: the id of the voice channel in question.
 function scanOne(channelId){
 	var channel=client.channels.get(channelId);
-	var channelArray=[]
+	var channelConfig=[]
 	if(channels[channelId]){ //Store the channel's settings in a variable to prevent crashes
-		channelArray=channels[channelId]
+		channelConfig=channels[channelId]
 	}
 	if(channel){
 		if(channel.manageable){ //if the bot has permission to change the name
 			if(channel.members.firstKey()){ // if anyone is in the channel
-				var games = [];
-				for(var i = 0; i < channel.members.array().length; i++){
-					if(!channel.members.array()[i].user.bot){ // ignore bots
-						if(channel.members.array()[i].presence.game){
-							games.push(channel.members.array()[i].presence.game.name || "nogame");
-						}
-					}
-				}
-				var newTitle=majority(games,channel.members.array().length,channelArray[1] || 0.5)
-				if(!noFlyList.includes(newTitle)){
-					if(channelArray[2]===1){  // "gameonly" archaic setting
-						channel.setName(newTitle)
-					}else if(channelArray[3]===1){ // "showhyphen" archaic setting
-						channel.setName(channelArray[0]+" "+newTitle)
-					}else if(channelArray[2]){ //Template - New setting
-						channel.setName(channelArray[2].replace(/X/,channelArray[0]).replace(/Y/,newTitle))
+				var gameTitle=majority(channel, channelConfig[1] || 0.5)
+				var newTitle=""
+				if(!noFlyList.includes(gameTitle)){
+					if(channelConfig[2]===1){  // "gameonly" archaic setting
+						newTitle=(gameTitle)
+					}else if(channelConfig[3]===1){ // "showhyphen" archaic setting
+						newTitle=(channelConfig[0]+" "+gameTitle)
+					}else if(channelConfig[2]){ //Template setting
+						newTitle=(channelConfig[2].replace(/X/,channelConfig[0]).replace(/Y/,gameTitle))
 					}else{
-						channel.setName(channelArray[0] + " - " + newTitle)
+						newTitle=(channelConfig[0] + " - " + gameTitle)
 					}
 				}else{
-					channel.setName(channelArray[0])
+					newTitle=(channelConfig[0]) // Set it back to normal
+				}
+				if(channel.name!==newTitle){
+					channel.setName(newTitle)
 				}
 			}else{
-				if(channel.name!==channelArray[0]){
-					channel.setName(channelArray[0])
+				if(channel.name!==channelConfig[0]){
+					newTitle=(channelConfig[0])
 				}
 			}
 		}
@@ -143,16 +141,12 @@ client.on('message', message =>{
 				if(message.guild.me.hasPermission("MANAGE_CHANNELS")){
 					if(message.member.hasPermission("MANAGE_CHANNELS")){
 						if (message.member.voiceChannel){
-							try{
-								if (!channels[message.member.voiceChannel.id]){
-									channels[message.member.voiceChannel.id]=[message.member.voiceChannel.name];
-									autosave()
-									message.reply("Successfully added `"+message.member.voiceChannel.name+"` to my list")
-								}else{
-									message.reply("`"+channels[message.member.voiceChannel.id][0]+"` is already on my list.")
-								}
-							}catch(err){
-								console.log(err)
+							if (!channels[message.member.voiceChannel.id]){
+								channels[message.member.voiceChannel.id]=[message.member.voiceChannel.name];
+								autosave()
+								message.reply("Successfully added `"+message.member.voiceChannel.name+"` to my list")
+							}else{
+								message.reply("`"+channels[message.member.voiceChannel.id][0]+"` is already on my list.")
 							}
 						}else{
 							message.reply("You must be in a voice channel to use this command.")
@@ -168,17 +162,13 @@ client.on('message', message =>{
 				if(message.guild.me.hasPermission("MANAGE_CHANNELS")){
 					if(message.member.hasPermission("MANAGE_CHANNELS")){
 						if (message.member.voiceChannel){
-							try{
-								if (channels[message.member.voiceChannel.id]){
-									message.member.voiceChannel.setName(channels[message.member.voiceChannelID][0])
-									delete channels[message.member.voiceChannelID];
-									autosave()
-									message.reply("Successfully removed `"+message.member.voiceChannel.name+"` from my list.")
-								}else{
-									message.reply("`"+message.member.voiceChannel.name+"` was not on my list.")
-								}
-							}catch(err){
-								console.log(err)
+							if (channels[message.member.voiceChannel.id]){
+								message.member.voicenewTitle=(channels[message.member.voiceChannelID][0])
+								delete channels[message.member.voiceChannelID];
+								autosave()
+								message.reply("Successfully removed `"+message.member.voiceChannel.name+"` from my list.")
+							}else{
+								message.reply("`"+message.member.voiceChannel.name+"` was not on my list.")
 							}
 						}else{
 							message.reply("You must be in a voice channel to use this command!")
