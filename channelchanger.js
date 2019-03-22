@@ -1,20 +1,25 @@
-const Discord = require('discord.js');const client = new Discord.Client();
+const Discord = require('discord.js');
 const jsonfile = require('jsonfile');
+
+const tokens = require('./tokens.js');
+var channels=require("./channels.json")
+var noFlyList=["nogame","Spotify"] // dont set the channel name to these
+var changes=false //whether or not there have been unsaved changes made to the database
+
+const client = new Discord.Client();
+
 client.on('ready', () => {
 	console.log('Ready!');
 	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
 	//list connected guilds and their ID's
 	client.guilds.forEach(guild=>{
-		console.log(guild.name+" id: "+guild.id)	
+		console.log(guild.name+" id: "+guild.id)
 	})
-	setTimeout(scanAll,15000)
+	console.log(Object.keys(channels).length) // count managed channels
 });
-const tokens = require('./tokens.js');
+
 client.login(tokens.bot_token);
-var channels=require("./channels.json")
-var noFlyList=["nogame","Spotify"] // dont set the channel name to these
-var changes=false //whether or not there have been unsaved changes made to the database
-var keys=Object.keys(channels) //list of channel id's
+
 /*
 * Called when changes are made to the database.
 * Instead of saving immediately every time changes are made,
@@ -36,7 +41,6 @@ function save(){
 			console.log(err)
 		}
 	})
-	keys=Object.keys(channels)
 	changes=false
 	console.log("Autosave Complete")
 }
@@ -52,14 +56,14 @@ function majority(channel,majorityPercent){
 	var majorityNumber=0;
 	channel.members.forEach(function(member){
 		if(!member.user.bot){ // ignore bots
-			if(member.user.presence.game){
+			if(member.presence.game){
 				games[member.presence.game.name]=(games[member.presence.game.name] || 0) + 1;
 				if(games[member.presence.game.name]>majorityNumber){
 					majorityName=member.presence.game.name;
 					majorityNumber=games[member.presence.game.name];
 				}
 			}else{
-				games["nogame"]+=1
+				games["nogame"]++
 			}
 		}
 	})
@@ -69,26 +73,20 @@ function majority(channel,majorityPercent){
 		return("nogame")
 	}
 }
-// loops through each channel on the list and passes it to scanOne
-function scanAll(){
-	setTimeout(scanAll,keys.length*200) //timed loop
-	for(var i=0;i<keys.length;i++){
-		setTimeout(scanOne,i*200,keys[i]) //give each channel 200ms to complete
-	}
-}
+
 // Checks and sets the name of a voice channel. The core functionality.
-// channelId: the id of the voice channel in question.
-function scanOne(channelId){
-	var channel=client.channels.get(channelId);
-	var channelConfig=[]
-	if(channels[channelId]){ //Store the channel's settings in a variable to prevent crashes
-		channelConfig=channels[channelId]
+// channel: the voice channel in question.
+function scanOne(channel){
+	var channelConfig=channels[channel.id] //Store the channel's settings in a variable to prevent crashes
+	if(!channelConfig){
+		console.log("Channel passed to function scanOne does not exist in database")
+		return;
 	}
 	if(channel){
 		if(channel.manageable){ //if the bot has permission to change the name
-			if(channel.members.firstKey()){ // if anyone is in the channel
-				var gameTitle=majority(channel, channelConfig[1] || 0.5)
-				var newTitle=""
+			if(channel.members.size>0){ // if anyone is in the channel
+				var gameTitle=majority(channel, channelConfig[1] || 0.5);
+				var newTitle="";
 				if(!noFlyList.includes(gameTitle)){
 					if(channelConfig[2]===1){  // "gameonly" archaic setting
 						newTitle=(gameTitle)
@@ -107,12 +105,12 @@ function scanOne(channelId){
 				}
 			}else{
 				if(channel.name!==channelConfig[0]){
-					newTitle=(channelConfig[0])
+					channel.setName(channelConfig[0])
 				}
 			}
 		}
 	}else{
-		delete channels[channelId]
+		delete channels[channel.id]
 		console.log("Found deleted channel")
 		autosave()
 	}
@@ -121,13 +119,24 @@ function scanOne(channelId){
 client.on('voiceStateUpdate', (oldMember,newMember) => {
 	if(oldMember.voiceChannel!==newMember.voiceChannel){ // dont respond to mute/deafen
 		if (oldMember.voiceChannel){
-			if (channels[oldMember.voiceChannel.id]){
-				scanOne(oldMember.voiceChannel.id)
+			if (channels[oldMember.voiceChannelID]){
+				scanOne(oldMember.voiceChannel)
 			}
 		}
 		if (newMember.voiceChannel){
-			if (channels[newMember.voiceChannel.id]){
-				scanOne(newMember.voiceChannel.id)
+			if (channels[newMember.voiceChannelID]){
+				scanOne(newMember.voiceChannel)
+			}
+		}
+	}
+})
+
+// if someone's presence changes
+client.on('presenceUpdate', (oldMember,newMember) => {
+	if(oldMember.presence.game!==newMember.presence.game){ // if its the game that changed
+		if(newMember.voiceChannel){
+			if(channels[newMember.voiceChannelID]){ // if their voice channel is managed by the bot
+				scanOne(newMember.voiceChannel)
 			}
 		}
 	}
@@ -135,7 +144,7 @@ client.on('voiceStateUpdate', (oldMember,newMember) => {
 
 client.on('message', message =>{
 	if(message.guild){
-		if(message.content[0]==="!"){  //peak efficiency
+		if(message.content[0]==="!"){
 			var messageL=message.content.toLowerCase()
 			if (messageL==="!addvc"){
 				if(message.guild.me.hasPermission("MANAGE_CHANNELS")){
@@ -145,6 +154,7 @@ client.on('message', message =>{
 								channels[message.member.voiceChannel.id]=[message.member.voiceChannel.name];
 								autosave()
 								message.reply("Successfully added `"+message.member.voiceChannel.name+"` to my list")
+								scanOne(message.member.voiceChannel)
 							}else{
 								message.reply("`"+channels[message.member.voiceChannel.id][0]+"` is already on my list.")
 							}
@@ -199,6 +209,7 @@ client.on('message', message =>{
 									channels[message.member.voiceChannelID][2]=newTemplate
 									delete channels[message.member.voiceChannelID][3] //Get rid of archaic stuff. Line not needed if using fresh database.
 									message.reply("The template for `"+channels[message.member.voiceChannelID][0]+"` is now "+newTemplate)
+									scanOne(message.member.voiceChannel)
 									if(newTemplate.includes(message.member.voiceChannel.name)){
 										message.channel.send("*Pro-tip: Use 'X' in your template in place of the channel name.*")
 									}
@@ -231,12 +242,13 @@ client.on('message', message =>{
 						if(channels[message.member.voiceChannelID]){
 							var majority=parseInt(messageL.substr(10))
 							if(majority){
-								if(majority>0 && majority <101){
+								if(majority>0 && majority <100){
 									channels[message.member.voiceChannelID][1]=majority/100
 									message.reply("Set majority for channel `"+channels[message.member.voiceChannelID][0]+"` to "+majority)
+									scanOne(message.member.voiceChannel)
 									autosave()
 								}else{
-									message.reply("Invalid input. Number must be between 1 and 100.")
+									message.reply("Invalid input. Number must be between 1 and 99.")
 								}
 							}else{
 								message.reply("Invalid input.")
