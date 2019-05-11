@@ -174,14 +174,15 @@ client.on('message', message =>{
 			if (messageL==="!addvc"){
 				if(message.member.hasPermission("MANAGE_CHANNELS")){
 					if (message.member.voiceChannel){
-						if(message.member.voiceChannel.manageable){
-							if (!channels[message.member.voiceChannel.id]){
-								channels[message.member.voiceChannel.id]=[message.member.voiceChannel.name, 0.5, "X - Y"];
+						var voiceChannel=message.member.voiceChannel;
+						if(voiceChannel.manageable){
+							if (!channels[voiceChannel.id]){
+								channels[voiceChannel.id]=[voiceChannel.name, 0.5, "X - Y"];
 								autosave()
-								message.reply("Successfully added `"+message.member.voiceChannel.name+"` to my list")
-								scanOne(message.member.voiceChannel)
+								message.reply("Successfully added `"+voiceChannel.name+"` to my list")
+								scanOne(voiceChannel)
 							}else{
-								message.reply("`"+channels[message.member.voiceChannel.id][0]+"` is already on my list.")
+								message.reply("`"+channels[voiceChannel.id][0]+"` is already on my list.")
 							}
 						}else{
 							message.reply("I need `manage_channels` permission to do this.")
@@ -195,15 +196,16 @@ client.on('message', message =>{
 			}else if(messageL==="!removevc"){
 				if(message.member.hasPermission("MANAGE_CHANNELS")){
 					if (message.member.voiceChannel){
-						if (channels[message.member.voiceChannel.id]){
-							if(message.member.voiceChannel.manageable){
-								message.member.voicenewTitle=(channels[message.member.voiceChannelID][0])
+						var voiceChannel=message.member.voiceChannel;
+						if (channels[voiceChannel.id]){
+							if(voiceChannel.manageable){
+								voiceChannel.setName(channels[voiceChannel.id][0])
 							}
-							delete channels[message.member.voiceChannelID];
+							delete channels[voiceChannel.id];
 							autosave();
-							message.reply("Successfully removed `"+message.member.voiceChannel.name+"` from my list.");
+							message.reply("Successfully removed `"+voiceChannel.name+"` from my list.");
 						}else{
-							message.reply("`"+message.member.voiceChannel.name+"` was not on my list.");
+							message.reply("`"+voiceChannel.name+"` was not on my list.");
 						}
 					}else{
 						message.reply("You must be in a voice channel to use this command!");
