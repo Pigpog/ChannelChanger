@@ -7,17 +7,12 @@ var changes=false; //whether or not there have been unsaved changes made to the 
 
 const client = new Discord.Client({
 	disabledEvents:[
-		"GUILD_SYNC",
-		"GUILD_MEMBER_ADD",
-		"GUILD_MEMBER_REMOVE",
-		"GUILD_MEMBER_UPDATE",
 		"GUILD_MEMBERS_CHUNK",
 		"GUILD_ROLE_CREATE",
 		"GUILD_ROLE_DELETE",
 		"GUILD_ROLE_UPDATE",
 		"GUILD_BAN_ADD",
 		"GUILD_BAN_REMOVE",
-		"CHANNEL_CREATE",
 		"CHANNEL_DELETE",
 		"CHANNEL_PINS_UPDATE",
 		"MESSAGE_DELETE",
