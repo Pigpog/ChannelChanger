@@ -6,29 +6,6 @@ var noFlyList=[undefined,"Spotify"]; // dont set the channel name to these
 var changes=false; //whether or not there have been unsaved changes made to the database
 
 const client = new Discord.Client({
-	disabledEvents:[
-		"GUILD_MEMBERS_CHUNK",
-		"GUILD_ROLE_CREATE",
-		"GUILD_ROLE_DELETE",
-		"GUILD_ROLE_UPDATE",
-		"GUILD_BAN_ADD",
-		"GUILD_BAN_REMOVE",
-		"CHANNEL_DELETE",
-		"CHANNEL_PINS_UPDATE",
-		"MESSAGE_DELETE",
-		"MESSAGE_UPDATE",
-		"MESSAGE_DELETE_BULK",
-		"MESSAGE_REACTION_ADD",
-		"MESSAGE_REACTION_REMOVE",
-		"MESSAGE_REACTION_REMOVE_ALL",
-		"USER_UPDATE",
-		"USER_NOTE_UPDATE",
-		"USER_SETTINGS_UPDATE",
-		"TYPING_START",
-		"VOICE_SERVER_UPDATE",
-		"RELATIONSHIP_ADD",
-		"RELATIONSHIP_REMOVE",
-	],
 	messageCacheMaxSize:1
 });
 
