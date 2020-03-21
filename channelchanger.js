@@ -2,28 +2,32 @@ const Discord = require('discord.js');
 const jsonfile = require('jsonfile');
 const tokens = require('./tokens.js');
 var channels=require("./channels.json");
-var noFlyList=[undefined,"Spotify", "Custom Status"]; // dont set the channel name to these
-var changes=false; //whether or not there have been unsaved changes made to the database
 
 const client = new Discord.Client({
 	messageCacheMaxSize:1
 });
 
+// dont set the channel name to these
+var noFlyList=[undefined,"Spotify", "Custom Status"];
+//whether or not there have been unsaved changes made to the database
+var changes=false; 
+
 client.on('ready', () => {
-	console.log('Logged in as '+client.user.username);
+	console.log('Logged in as ' + client.user.username);
 	updatePresence();
 	// Log some statistics
-	console.log("Guilds: "+client.guilds.size);
-	console.log("Channels in database: "+Object.keys(channels).length); // count managed channels
-	if(process.argv[2]==="prune"){
+	console.log("Guilds: " + client.guilds.size);
+	// count managed channels
+	console.log("Channels in database: " + Object.keys(channels).length); 
+	if(process.argv[2] === "prune"){
 		prune();
 	}
 });
 
-client.login(tokens.bot3_token);
+client.login(tokens.bot_token);
 
-function prune(){
-    var deleted=0;
+function prune() {
+    var deleted = 0;
     console.log("Pruning database...");
     for(var channel in channels){
         if(!client.channels.get(channel)){
@@ -33,7 +37,6 @@ function prune(){
         }
     }
     console.log("Deleted "+deleted+" channels.");
-
 }
 
 function updatePresence(){
@@ -71,19 +74,27 @@ function save(){
 * @param majorityPercent the `!majority` value for the channel, as a decimal
 * @return The title of the majority game
 */
-function majority(channel,majorityPercent){
-	var games = {}; // title : count
-	var majorityName=""; // after sorting, this is the most played game title
-	var majorityNumber=0; // after sorting, this is how many users are playing it
-	var userCount=0; // Number of non-bot users
-	channel.members.forEach(function(member){
-		if(!member.user.bot){ // ignore bots
+function majority(channel,majorityPercent) {
+	// title : count
+	var games = {};
+	// after sorting, this is the most played game title
+	var majorityName = "";
+	// after sorting, this is how many users are playing it 
+	var majorityNumber = 0;
+	// Number of non-bot users
+	var userCount = 0;
+
+	channel.members.forEach(function(member) {
+		if(!member.user.bot) { // ignore bots
 			userCount++;
-			if(member.presence.game){
-				games[member.presence.game.name]=((games[member.presence.game.name] || 0) + 1);
-				if(games[member.presence.game.name]>majorityNumber){
-					majorityName=member.presence.game.name;
-					majorityNumber=games[member.presence.game.name];
+			if(member.presence.activities.length > 0){
+				var gameName = member.presence.activities[member.presence.activities.length-1].toString();
+				if(gameName) {
+					games[gameName] = ((games[gameName] || 0) + 1);
+					if(games[gameName] > majorityNumber) {
+						majorityName = gameName;
+						majorityNumber = games[gameName];
+					}
 				}
 			}
 		}
@@ -127,27 +138,25 @@ function scanOne(channel){
 	}
 }
 //update affected channels when someone leaves or joins
-client.on('voiceStateUpdate', (oldMember,newMember) => {
-	if(oldMember.voiceChannel!==newMember.voiceChannel){ // dont respond to mute/deafen
-		if (oldMember.voiceChannel){
-			if (channels[oldMember.voiceChannelID]){
-				scanOne(oldMember.voiceChannel);
+client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => {
+	if(oldVoiceState.channelID !== newVoiceState.channelID){ // dont respond to mute/deafen
+		if (oldVoiceState.channelID){
+			if (channels[oldVoiceState.channelID]){
+				scanOne(oldVoiceState.channel);
 			}
 		}
-		if (newMember.voiceChannel){
-			if (channels[newMember.voiceChannelID]){
-				scanOne(newMember.voiceChannel);
+		if (newVoiceState.channelID){
+			if (channels[newVoiceState.channelID]){
+				scanOne(newVoiceState.channel);
 			}
 		}
 	}
 });
 
-client.on('presenceUpdate', (oldMember,newMember) => {
-	if(oldMember.presence.game!==newMember.presence.game){ // if its the game that changed
-		if(newMember.voiceChannel){
-			if(channels[newMember.voiceChannelID]){ // if their voice channel is managed by the bot
-				scanOne(newMember.voiceChannel);
-			}
+client.on('presenceUpdate', (oldPresence, newPresence) => {
+	if(newPresence.member.voice.channelID){
+		if(channels[newPresence.member.voice.channelID]){ // if their voice channel is managed by the bot
+			scanOne(newPresence.member.voice.channel);
 		}
 	}
 });
@@ -156,11 +165,12 @@ client.on('message', message =>{
 	if(message.guild){
 		if(message.content[0]==="!"){
 			var messageL=message.content.toLowerCase()
-			if (messageL === "!invite") message.reply("https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16");
-			if (messageL==="!addvc"){
+			if (messageL === "!invite") {
+				message.reply("https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16");
+			}else if (messageL==="!addvc"){
 				if(message.member.hasPermission("MANAGE_CHANNELS")){
-					if (message.member.voiceChannel){
-						var voiceChannel=message.member.voiceChannel;
+					if (message.member.voice.channelID){
+						var voiceChannel=message.member.voice.channel;
 						if(voiceChannel.manageable){
 							if (!channels[voiceChannel.id]){
 								channels[voiceChannel.id]=[voiceChannel.name, 0.5, "X - Y"];
@@ -182,8 +192,8 @@ client.on('message', message =>{
 				}
 			}else if(messageL==="!removevc"){
 				if(message.member.hasPermission("MANAGE_CHANNELS")){
-					if (message.member.voiceChannel){
-						var voiceChannel=message.member.voiceChannel;
+					if (message.member.voice.channel){
+						var voiceChannel=message.member.voice.channel;
 						if (channels[voiceChannel.id]){
 							if(voiceChannel.manageable){
 								voiceChannel.setName(channels[voiceChannel.id][0])
@@ -202,24 +212,21 @@ client.on('message', message =>{
 					message.reply("You need `manage_channels` permission to do this.");
 				}
 			}else if(messageL==="!template"){
-				if(message.member.voiceChannel){
-					if(channels[message.member.voiceChannelID]){
-						message.reply("Template for `"+channels[message.member.voiceChannelID][0]+"` is `"+channels[message.member.voiceChannelID][2]+"`");
+				if(message.member.voice.channel){
+					if(channels[message.member.voice.channelID]){
+						message.reply("Template for `"+channels[message.member.voice.channelID][0]+"` is `"+channels[message.member.voice.channelID][2]+"`");
 					}
 				}
-			}else if(messageL.indexOf("!template ")===0){
-				if(message.member.hasPermission("MANAGE_CHANNELS")){
-					if(message.member.voiceChannel){
-						if(channels[message.member.voiceChannelID]){
+			}else if(messageL.indexOf("!template ")===0) {
+				if(message.member.hasPermission("MANAGE_CHANNELS")) {
+					if(message.member.voice.channel) {
+						if(channels[message.member.voice.channelID]) {
 							var newTemplate=message.content.substr(10).trim();
-							if(newTemplate.length<100){
-								if(newTemplate.includes("Y")){
-									channels[message.member.voiceChannelID][2]=newTemplate;
-									message.reply("The template for `"+channels[message.member.voiceChannelID][0]+"` is now "+newTemplate);
-									scanOne(message.member.voiceChannel);
-									if(newTemplate.includes(message.member.voiceChannel.name)){
-										message.channel.send("*Pro-tip: Use 'X' in your template in place of the channel name.*");
-									}
+							if(newTemplate.length < 100) {
+								if(newTemplate.includes("Y")) {
+									channels[message.member.voice.channelID][2] = newTemplate;
+									message.reply("The template for `" + channels[message.member.voice.channelID][0] + "` is now "+newTemplate);
+									scanOne(message.member.voice.channel);
 									autosave();
 								}else{
 									message.reply("The template must include `Y`.");
@@ -236,23 +243,21 @@ client.on('message', message =>{
 				}else{
 					message.reply("You need `manage_channels` permission to do this.");
 				}
-			}else if(messageL==="!showhyphen"){
-				message.reply("`!showhyphen` has been replaced with `!template`. Check `!help` for details.");
-			}else if(messageL==="!majority"){
-				if(message.member.voiceChannel){
-					if(channels[message.member.voiceChannelID]){
-						message.reply("Majority for `"+channels[message.member.voiceChannelID][0]+"`: "+channels[message.member.voiceChannelID][1]*100+"%");
+			}else if(messageL==="!majority") {
+				if(message.member.voice.channel) {
+					if(channels[message.member.voice.channelID]) {
+						message.reply("Majority for `"+channels[message.member.voice.channelID][0]+"`: "+channels[message.member.voice.channelID][1]*100+"%");
 					}
 				}
-			}else if(messageL.indexOf("!majority ")===0){
-				if(message.member.hasPermission("MANAGE_CHANNELS")){
-					if(message.member.voiceChannelID){
-						if(channels[message.member.voiceChannelID]){
-							var majority=parseInt(messageL.substr(10));
-							if(majority>0 && majority <100){
-								channels[message.member.voiceChannelID][1]=majority/100;
-								message.reply("Set majority for channel `"+channels[message.member.voiceChannelID][0]+"` to "+majority+"%");
-								scanOne(message.member.voiceChannel);
+			}else if(messageL.indexOf("!majority ")===0) {
+				if(message.member.hasPermission("MANAGE_CHANNELS")) {
+					if(message.member.voice.channelID) {
+						if(channels[message.member.voice.channelID]) {
+							var majority = parseInt(messageL.substr(10));
+							if(majority > 0 && majority < 100) {
+								channels[message.member.voice.channelID][1] = majority / 100;
+								message.reply("Set majority for channel `"+channels[message.member.voice.channelID][0]+"` to "+majority+"%");
+								scanOne(message.member.voice.channel);
 								autosave();
 							}else{
 								message.reply("Invalid input. Number must be between 1 and 99.");
