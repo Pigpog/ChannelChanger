@@ -1,7 +1,6 @@
 const Discord = require('discord.js');
 const jsonfile = require('jsonfile');
 const tokens = require('./tokens.js');
-var http = require('http');
 var channels=require("./channels.json");
 var noFlyList=[undefined,"Spotify", "Custom Status"]; // dont set the channel name to these
 var changes=false; //whether or not there have been unsaved changes made to the database
