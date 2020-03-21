@@ -40,7 +40,7 @@ function prune() {
 }
 
 function updatePresence(){
-	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
+	client.user.setPresence({ activity: { name: "!help - Changing Channels", status: 'online' } });
 }
 
 /**
