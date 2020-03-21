@@ -1,8 +1,9 @@
 const Discord = require('discord.js');
 const jsonfile = require('jsonfile');
 const tokens = require('./tokens.js');
+var http = require('http');
 var channels=require("./channels.json");
-var noFlyList=[undefined,"Spotify"]; // dont set the channel name to these
+var noFlyList=[undefined,"Spotify", "Custom Status"]; // dont set the channel name to these
 var changes=false; //whether or not there have been unsaved changes made to the database
 
 const client = new Discord.Client({
@@ -11,25 +12,34 @@ const client = new Discord.Client({
 
 client.on('ready', () => {
 	console.log('Logged in as '+client.user.username);
-	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
+	updatePresence();
 	// Log some statistics
 	console.log("Guilds: "+client.guilds.size);
 	console.log("Channels in database: "+Object.keys(channels).length); // count managed channels
 	if(process.argv[2]==="prune"){
-		var deleted=0;
-		console.log("Pruning database...");
-		for(var channel in channels){
-			if(!client.channels.get(channel)){
-				delete channels[channel];
-				deleted++;
-				autosave();
-			}
-		}
-		console.log("Deleted "+deleted+" channels.");
+		prune();
 	}
 });
 
-client.login(tokens.bot_token);
+client.login(tokens.bot3_token);
+
+function prune(){
+    var deleted=0;
+    console.log("Pruning database...");
+    for(var channel in channels){
+        if(!client.channels.get(channel)){
+            delete channels[channel];
+            deleted++;
+            autosave();
+        }
+    }
+    console.log("Deleted "+deleted+" channels.");
+
+}
+
+function updatePresence(){
+	client.user.setPresence({ game: { name: "!help - Changing Channels", type: 0 } });
+}
 
 /**
 * Called when changes are made to the database.
@@ -97,7 +107,11 @@ function scanOne(channel){
 				var gameTitle=majority(channel, channelConfig[1] || 0.5);
 				if(!noFlyList.includes(gameTitle)){
 					if(channelConfig[2]){ //Template setting
-						newTitle=(channelConfig[2].replace(/X/,channelConfig[0]).replace(/Y/,gameTitle));
+						try{
+							newTitle=(channelConfig[2].replace(/X/,channelConfig[0]).replace(/Y/,gameTitle));
+						}catch(e){
+							console.log(channel.id + "\007");
+						}
 					}else{ // use default
 						newTitle=(channelConfig[0] + " - " + gameTitle);
 					}
@@ -143,6 +157,7 @@ client.on('message', message =>{
 	if(message.guild){
 		if(message.content[0]==="!"){
 			var messageL=message.content.toLowerCase()
+			if (messageL === "!invite") message.reply("https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16");
 			if (messageL==="!addvc"){
 				if(message.member.hasPermission("MANAGE_CHANNELS")){
 					if (message.member.voiceChannel){
@@ -153,6 +168,7 @@ client.on('message', message =>{
 								autosave()
 								message.reply("Successfully added `"+voiceChannel.name+"` to my list")
 								scanOne(voiceChannel)
+								//updatePresence();
 							}else{
 								message.reply("`"+channels[voiceChannel.id][0]+"` is already on my list.")
 							}
@@ -175,6 +191,7 @@ client.on('message', message =>{
 							}
 							delete channels[voiceChannel.id];
 							autosave();
+							//updatePresence();
 							message.reply("Successfully removed `"+voiceChannel.name+"` from my list.");
 						}else{
 							message.reply("`"+voiceChannel.name+"` was not on my list.");
@@ -251,7 +268,7 @@ client.on('message', message =>{
 					message.reply("You need `manage_channels` permission to do this.");
 				}
 			}else if (messageL==="!help"){
-				message.channel.send("__Channel Changer Help__\n*The purpose of Channel Changer is to add what game you're playing to your connected voice channel's name.*\n**!addvc**: Adds your voice channel to be renamed.\n**!removevc**: Removes your voice channel from the list.\n**!majority**: Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.\n**!template**: Sets the template. Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.");
+				message.channel.send("__Channel Changer Help__\n*The purpose of Channel Changer is to add what game you're playing to your connected voice channel's name.*\n**!addvc**: Adds your voice channel to be renamed.\n**!removevc**: Removes your voice channel from the list.\n**!majority**: Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.\n**!template**: Sets the template. Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.\n**!invite**: Get the link to invite the bot.");
 			}
 		}
 	}
@@ -259,6 +276,13 @@ client.on('message', message =>{
 
 client.on("guildCreate", guild=>{
 	console.log("Joined "+guild.name);
+	//updatePresence();
+})
+
+client.on("guildDelete", guild => {
+	console.log("Left "+guild.name);
+	updatePresence();
+	prune();
 })
 
 // I am a nihilist
