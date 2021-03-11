@@ -2,7 +2,7 @@
 Discord bot that automatically updates voice channel names based on what games people are playing in it.
 
 
-[Add the bot to your server!](https://discordapp.com/oauth2/authorize?client_id=764169534226694147&scope=bot&permissions=16)
+[Add the bot to your server!](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
 
 [Join our Discord server!](https://discord.gg/ExPdGsW)
 
@@ -19,7 +19,7 @@ Discord bot that automatically updates voice channel names based on what games p
 
 ## Usage
 (Note: You and the bot need Manage Channels permission)
- - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=764169534226694147&scope=bot&permissions=16)
+ - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
  - Join a voice channel
  - Send !addvc to a channel that the bot can see on the same server
  
