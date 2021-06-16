@@ -1,2 +1,7 @@
-node_modules/
-tokens.js
+debug/
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+env
+
