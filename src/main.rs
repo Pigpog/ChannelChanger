@@ -6,16 +6,17 @@ use serenity::{
         prelude::{GuildId, ChannelId},
         voice::VoiceState,
     },
+    client::{Client, Context, EventHandler},
+    framework::standard::{
+        StandardFramework,
+        CommandResult,
+        macros::{
+            command,
+            group
+        },
+    },
 };
-use serenity::client::{Client, Context, EventHandler};
-use serenity::framework::standard::{
-    StandardFramework,
-    CommandResult,
-    macros::{
-        command,
-        group
-    }
-};
+//use serenity::client::{Client, Context, EventHandler};
 use std::env;
 
 fn change_channel(channel_id: ChannelId) {
@@ -43,18 +44,25 @@ impl EventHandler for Handler {
             },
             None => println!("Somehow didnt have a member"),
         }
-        // TODO: ignore new id == old id
-        match _new.channel_id {
-            Some(channel_id) => change_channel(channel_id),
-            None => println!("No new"),
-        }
-
         match _old {
             Some(old) => match old.channel_id {
-                Some(channel_id) => change_channel(channel_id),
+                Some(channel_id) => {
+                    if _new.channel_id.is_some() {
+                        // Ignore if ID didnt change
+                        if old.channel_id == _new.channel_id {
+                            return;
+                        }
+                    }
+                    change_channel(channel_id)
+                },
                 None => println!("No old ID"),
             },
             None => println!("No old"),
+        }
+
+        match _new.channel_id {
+            Some(channel_id) => change_channel(channel_id),
+            None => println!("No new"),
         }
     }
 }
