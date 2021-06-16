@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-postgres = "0.19.1"
 
 [dependencies.tokio]
 version = "1.7.0"
@@ -15,5 +14,5 @@ features = ["macros", "rt-multi-thread"]
 
 [dependencies.serenity]
 version = "0.10.8"
-features = ["client", "cache", "framework", "standard_framework", "rustls_backend"]
+features = ["cache", "framework"]
 
