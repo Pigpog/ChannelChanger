@@ -3,7 +3,7 @@ use serenity::{
     model::{
         channel::Message,
         gateway::Ready,
-        prelude::{GuildId, ChannelId},
+        prelude::{GuildId, ChannelId, ActivityType},
         voice::VoiceState,
     },
     client::{
@@ -27,8 +27,18 @@ use std::env;
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (guild) => {
+            let presences = guild.guild(&ctx).await.unwrap().presences;
             for member in guild.members(&ctx).await.unwrap() {
-                println!("User: {:?}\nPresence: {:?}", member.user.name, guild.guild(&ctx).await.unwrap().presences);
+                match presences.get(&member.user.id) {
+                    Some(presence) => {
+                        for activity in &presence.activities {
+                            if activity.kind == ActivityType::Playing {
+                                println!("{:?}", activity.name);
+                            }
+                        }
+                    },
+                    None => println!("No activities"),
+                }
             }
         },
         None => println!("Not a guild channel"),
