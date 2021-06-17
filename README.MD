@@ -1,4 +1,6 @@
-# ChannelChanger
+# ChannelChanger - Rust Branch
+In this branch, I will rewrite the bot in Rust. Note that this is my first time using Rust. You've been warned.
+
 Discord bot that automatically updates voice channel names based on what games people are playing in it.
 
 
