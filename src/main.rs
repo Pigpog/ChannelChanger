@@ -16,15 +16,18 @@ use serenity::{
         },
     },
 };
-//use serenity::client::{Client, Context, EventHandler};
+
 use std::env;
 
-fn change_channel(channel_id: ChannelId) {
-    println!("Pretending to change channel {}", channel_id);
+async fn change_channel(ctx: &Context, channel_id: ChannelId) {
+    println!("Changing channel {:?}", channel_id.to_channel(&ctx.http).await);
+    if let Err(why) = channel_id.edit(&ctx.http, |c| c.name("test")).await {
+        println!("Error: {}", why);
+    }
 }
 
 #[group]
-#[commands(addvc, rmvc)]
+#[commands(help, addvc, rmvc, template, majority)]
 struct General;
 
 struct Handler;
@@ -36,32 +39,33 @@ impl EventHandler for Handler {
     }
 
     async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) { 
-        // Ignore events about bot users
+        // The way this function is ordered is important
+        // because of my (lazy?) use of return
         match _new.member {
+            // Ignore events about bot users
             Some(member) => if member.user.bot {
                 println!("Ignoring bot");
                 return;
             },
             None => println!("Somehow didnt have a member"),
         }
+        // Check your old channel
         match _old {
             Some(old) => match old.channel_id {
                 Some(channel_id) => {
-                    if _new.channel_id.is_some() {
-                        // Ignore if ID didnt change
-                        if old.channel_id == _new.channel_id {
-                            return;
-                        }
+                    // Ignore deafen/mute
+                    if _new.channel_id.is_some() && old.channel_id == _new.channel_id {
+                        return;
                     }
-                    change_channel(channel_id)
+                    change_channel(&_ctx, channel_id).await;
                 },
                 None => println!("No old ID"),
             },
             None => println!("No old"),
         }
-
+        // Check your new channel
         match _new.channel_id {
-            Some(channel_id) => change_channel(channel_id),
+            Some(channel_id) => { change_channel(&_ctx, channel_id).await; },
             None => println!("No new"),
         }
     }
@@ -91,13 +95,30 @@ async fn main() {
 async fn addvc(ctx: &Context, msg: &Message) -> CommandResult {
     println!("{:?}", msg);
     msg.reply(ctx, "insert code to add voice channels").await?;
-    
     Ok(())
 }
 
 #[command]
 async fn rmvc(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "insert code to remove voice channels").await?;
-
     Ok(())
 }
+
+#[command]
+async fn template(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "insert code to set template").await?;
+    Ok(())
+}
+
+#[command]
+async fn majority(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "insert code to change majority").await?;
+    Ok(())
+}
+
+#[command]
+async fn help(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "__Commands__\n**!addvc** - Set your current voice channel to be renamed\n**!removevc** - Your current voice channel will no longer be renamed").await?;
+    Ok(())
+}
+
