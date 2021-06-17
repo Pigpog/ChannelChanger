@@ -6,7 +6,12 @@ use serenity::{
         prelude::{GuildId, ChannelId},
         voice::VoiceState,
     },
-    client::{Client, Context, EventHandler},
+    client::{
+        Client,
+        Context,
+        EventHandler,
+        bridge::gateway::GatewayIntents,
+    },
     framework::standard::{
         StandardFramework,
         CommandResult,
@@ -20,7 +25,15 @@ use serenity::{
 use std::env;
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
-    println!("Changing channel {:?}", channel_id.to_channel(&ctx.http).await);
+    match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
+        Some (guild) => {
+            for member in guild.members(&ctx).await.unwrap() {
+                println!("User: {:?}\nPresence: {:?}", member.user.name, guild.guild(&ctx).await.unwrap().presences);
+            }
+        },
+        None => println!("Not a guild channel"),
+    }
+    println!("Changing channel {:?}", channel_id);
     if let Err(why) = channel_id.edit(&ctx.http, |c| c.name("test")).await {
         println!("Error: {}", why);
     }
@@ -82,6 +95,13 @@ async fn main() {
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
+        .intents({
+            let mut intents = GatewayIntents::GUILD_PRESENCES;
+            intents.set(GatewayIntents::GUILD_VOICE_STATES, true);
+            intents.set(GatewayIntents::GUILD_MESSAGES, true);
+            intents.set(GatewayIntents::GUILDS, true);
+            intents
+        })
         .await
         .expect("Error creating client");
 
