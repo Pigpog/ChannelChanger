@@ -22,28 +22,45 @@ use serenity::{
     },
 };
 
+use std::collections::HashMap;
+
 use std::env;
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
+    let mut games: HashMap<String, usize> = HashMap::new();
+    // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
-        Some (guild) => {
-            let presences = guild.guild(&ctx).await.unwrap().presences;
-            for member in guild.members(&ctx).await.unwrap() {
+        Some (gchannel) => {
+            // Contains presences of all guild members
+            let presences = gchannel.guild(&ctx).await.unwrap().presences;
+            for member in gchannel.members(&ctx).await.unwrap() {
                 match presences.get(&member.user.id) {
                     Some(presence) => {
                         for activity in &presence.activities {
                             if activity.kind == ActivityType::Playing {
-                                println!("{:?}", activity.name);
+                                println!("{} is playing {:?}", member.user.name, activity.name);
+                                *games.entry(activity.name.clone()).or_default() += 1;
                             }
                         }
                     },
-                    None => println!("No activities"),
+                    None => {},
                 }
             }
         },
-        None => println!("Not a guild channel"),
+        None => {},
     }
-    println!("Changing channel {:?}", channel_id);
+    println!("Vector contents: {:?}", &games);
+    let maj = games.into_iter().max_by_key(|(_, v)| *v).map(|(k, _)| k);
+    match maj {
+        Some(major) => {
+            // Set channel name to game
+            println!("Majority: {}", major);
+        }, 
+        None => {
+            // Reset channel name
+        },
+    }
+    println!("Changing channel {}", channel_id);
     if let Err(why) = channel_id.edit(&ctx.http, |c| c.name("test")).await {
         println!("Error: {}", why);
     }
@@ -82,14 +99,14 @@ impl EventHandler for Handler {
                     }
                     change_channel(&_ctx, channel_id).await;
                 },
-                None => println!("No old ID"),
+                None => {},
             },
-            None => println!("No old"),
+            None => {},
         }
         // Check your new channel
         match _new.channel_id {
             Some(channel_id) => { change_channel(&_ctx, channel_id).await; },
-            None => println!("No new"),
+            None => {},
         }
     }
 }
