@@ -33,8 +33,8 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
-            // Contains presences of all guild members
             old_name = gchannel.name.clone();
+            // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
             for member in gchannel.members(&ctx).await.unwrap() {
                 match presences.get(&member.user.id) {
@@ -42,6 +42,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
                         for activity in &presence.activities {
                             if activity.kind == ActivityType::Playing {
                                 println!("{} is playing {:?}", member.user.name, activity.name);
+                                // Increase the count for this game
                                 *games.entry(activity.name.clone()).or_default() += 1;
                             }
                         }
