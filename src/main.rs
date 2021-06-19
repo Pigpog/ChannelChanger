@@ -27,6 +27,7 @@ use std::collections::HashMap;
 use std::env;
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
+    let new_name: String;
     let mut games: HashMap<String, usize> = HashMap::new();
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
@@ -49,19 +50,22 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         },
         None => {},
     }
+
     println!("Vector contents: {:?}", &games);
-    let maj = games.into_iter().max_by_key(|(_, v)| *v).map(|(k, _)| k);
-    match maj {
+
+    match games.into_iter().max_by_key(|(_, v)| *v).map(|(k, _)| k) {
         Some(major) => {
             // Set channel name to game
             println!("Majority: {}", major);
+            new_name = major;
         }, 
         None => {
             // Reset channel name
+            new_name = String::from("test");
         },
     }
     println!("Changing channel {}", channel_id);
-    if let Err(why) = channel_id.edit(&ctx.http, |c| c.name("test")).await {
+    if let Err(why) = channel_id.edit(&ctx.http, |c| c.name(new_name)).await {
         println!("Error: {}", why);
     }
 }
