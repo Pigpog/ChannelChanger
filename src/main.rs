@@ -28,11 +28,13 @@ use std::env;
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     let new_name: String;
+    let mut old_name: String = String::new();
     let mut games: HashMap<String, usize> = HashMap::new();
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
             // Contains presences of all guild members
+            old_name = gchannel.name.clone();
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
             for member in gchannel.members(&ctx).await.unwrap() {
                 match presences.get(&member.user.id) {
@@ -64,7 +66,14 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             new_name = String::from("test");
         },
     }
+
+    // We don't need to change the name
+    if new_name == old_name {
+        return;
+    }
+
     println!("Changing channel {}", channel_id);
+
     if let Err(why) = channel_id.edit(&ctx.http, |c| c.name(new_name)).await {
         println!("Error: {}", why);
     }
