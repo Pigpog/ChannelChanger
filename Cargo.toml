@@ -8,6 +8,8 @@ edition = "2018"
 
 [dependencies]
 
+sqlite = "0.26.0"
+
 [dependencies.tokio]
 version = "1.7.0"
 features = ["macros", "rt-multi-thread"]

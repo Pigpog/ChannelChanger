@@ -131,6 +131,11 @@ async fn main() {
         .configure(|c| c.prefix("!")) // set the bot's prefix to "!"
         .group(&GENERAL_GROUP);
 
+    // Connect with our database
+    let dbconn = sqlite::open(env::var("DATABASE").expect("database_file")).unwrap();
+    // Enable foreign key constraint enforcement
+    dbconn.execute("PRAGMA foreign_keys=ON;").unwrap();
+
     // Login with a bot token from the environment
     let token = env::var("DISCORD_TOKEN").expect("token");
     let mut client = Client::builder(token)

@@ -1,0 +1,34 @@
+# Use this to initialize the sqlite database:
+# cat sqlinit.txt | sqlite3 channels.db
+
+
+PRAGMA foreign_keys=ON;
+
+CREATE TABLE guilds (
+	guild_id TEXT PRIMARY KEY,
+	majority INTEGER,
+	template TEXT
+);
+
+CREATE TABLE channels (
+	channel_id TEXT,
+	guild_id TEXT,
+	majority INTEGER,
+	template TEXT,
+	PRIMARY KEY (channel_id),
+	FOREIGN KEY (guild_id)
+	    REFERENCES guilds (guild_id)
+		ON DELETE CASCADE
+		ON UPDATE NO ACTION
+);
+
+CREATE TABLE categories (
+	category_id TEXT PRIMARY KEY,
+	guild_id TEXT,
+	majority INTEGER,
+	template TEXT,
+	FOREIGN KEY (guild_id)
+	    REFERENCES guilds (guild_id)
+		ON DELETE CASCADE
+		ON UPDATE NO ACTION
+);
