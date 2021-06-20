@@ -3,7 +3,6 @@ In this branch, I will rewrite the bot in Rust. Note that this is my first time 
 
 Discord bot that automatically updates voice channel names based on what games people are playing in it.
 
-
 [Add the bot to your server!](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
 
 [Join our Discord server!](https://discord.gg/ExPdGsW)
@@ -24,9 +23,42 @@ Discord bot that automatically updates voice channel names based on what games p
  - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
  - Join a voice channel
  - Send !addvc to a channel that the bot can see on the same server
- 
- ### If you are running your own Channel Changer, add your token to `tokens.json`
- 
- ## Node modules:
-  - [discord.js](https://www.npmjs.com/package/discord.js)
-  - [jsonfile](https://www.npmjs.com/package/jsonfile)
+
+## Compiling
+
+Ensure that the Rust language is installed. If not, install it using your
+distribution's package manager.
+
+Clone this repository:
+
+```
+git clone https://github.com/Pigpog/ChannelChanger.git
+```
+
+Compile using cargo:
+
+```
+cd ChannelChanger
+
+cargo build --release
+```
+
+## Hosting
+
+Discord bots use login tokens.
+You must create an application and bot user on the [Discord Applications page](https://discord.com/developers/applications).
+
+### on GNU/Linux
+
+Initialize the sqlite database:
+
+```
+sqlite -init sqlinit.txt channels.db
+```
+
+Once you have compiled the bot, you can run it using the following command:
+
+```
+DISCORD_TOKEN=YOUR_TOKEN_HERE DATABASE=channels.db cargo run
+```
+

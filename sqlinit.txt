@@ -1,5 +1,5 @@
 # Use this to initialize the sqlite database:
-# cat sqlinit.txt | sqlite3 channels.db
+# sqlite3 -init sqlinit.txt channels.db
 
 
 PRAGMA foreign_keys=ON;

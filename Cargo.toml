@@ -2,6 +2,8 @@
 name = "channel_changer"
 version = "0.0.1"
 authors = ["Pigpog <7060603@hotmail.ca>"]
+license = "GPLv3"
+readme = "README.MD"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
