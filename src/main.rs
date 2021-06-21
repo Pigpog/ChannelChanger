@@ -99,7 +99,8 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
 }
 
 #[group]
-#[commands(help, addvc, rmvc, template, majority)]
+#[commands(server, channel, category, invite, help)]
+
 struct General;
 
 struct Handler;
@@ -149,8 +150,9 @@ async fn main() {
     println!("This program comes with ABSOLUTELY NO WARRANTY;");
     println!("This is free software, and you are welcome to");
     println!("redistribute it under certain conditions;");
+    
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix("!")) // set the bot's prefix to "!"
+        .configure(|c| c.prefix("!")) // set the bot's prefix
         .group(&GENERAL_GROUP);
 
     // Connect with our database
@@ -180,33 +182,32 @@ async fn main() {
 }
 
 #[command]
-async fn addvc(ctx: &Context, msg: &Message) -> CommandResult {
-    println!("{:?}", msg);
-    msg.reply(ctx, "insert code to add voice channels").await?;
+async fn server(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "add code to modify server settings").await?;
     Ok(())
 }
 
 #[command]
-async fn rmvc(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "insert code to remove voice channels").await?;
+async fn channel(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "add code to modify channel settings").await?;
     Ok(())
 }
 
 #[command]
-async fn template(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "insert code to set template").await?;
+async fn category(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "add code to modify category settings").await?;
     Ok(())
 }
 
 #[command]
-async fn majority(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "insert code to change majority").await?;
+async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "https://discordapp.com/oauth2/authorize?client_id=854460666861977621&scope=bot&permissions=16").await?;
     Ok(())
 }
 
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "__Commands__\n**!addvc** - Set your current voice channel to be renamed\n**!removevc** - Your current voice channel will no longer be renamed").await?;
+    msg.reply(ctx, "__Commands__\n**!channel** - Change settings for your current voice channel\n**!category** - Change settings for your current voice channel's category\n**!server** - Set default settings for the server\n**!invite** - Get the invite link for this bot\n__Subcommands__\n**enable** - Enables ChannelChanger for your current voice channel/category\n**disable** - Disables ChannelChanger for your current voice channel/category\n**template** - Sets the pattern to use for channel names. Default: `X - Y`").await?;
     Ok(())
 }
 
