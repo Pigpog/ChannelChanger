@@ -12,6 +12,7 @@ CREATE TABLE guilds (
 
 CREATE TABLE channels (
 	channel_id TEXT,
+	name TEXT,
 	guild_id TEXT,
 	majority INTEGER,
 	template TEXT,
