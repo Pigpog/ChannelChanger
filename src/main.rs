@@ -23,6 +23,7 @@ use serenity::{
         gateway::Ready,
         prelude::{GuildId, ChannelId, ActivityType},
         voice::VoiceState,
+        guild::Guild,
     },
     client::{
         Client,
@@ -40,9 +41,20 @@ use serenity::{
     },
 };
 
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    env,
+};
 
-use std::env;
+mod database;
+use database::Database;
+
+#[group]
+#[commands(server, channel, category, invite, help)]
+
+struct General;
+
+struct Handler;
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     let new_name: String;
@@ -91,19 +103,12 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         return;
     }
 
-    println!("Changing channel {}", channel_id);
+    println!("Changing channel {} -> {}", old_name, new_name);
 
     if let Err(why) = channel_id.edit(&ctx.http, |c| c.name(new_name)).await {
         println!("Error: {}", why);
     }
 }
-
-#[group]
-#[commands(server, channel, category, invite, help)]
-
-struct General;
-
-struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -111,7 +116,17 @@ impl EventHandler for Handler {
         println!("{} ready", ready.user.name);
     }
 
-    async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) { 
+    async fn guild_create(&self, _ctx: Context, _guild: Guild, _is_new: bool) {
+        if _is_new {
+            let data = _ctx.data.read().await;
+            match data.get::<Database>() {
+                Some(conn) => database::add_guild(conn, _guild.id.to_string()),
+                None => {},
+            }
+        }
+    }
+
+    async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) {
         // The way this function is ordered is important
         // because of my (lazy?) use of return
         match _new.member {
@@ -152,14 +167,10 @@ async fn main() {
     println!("redistribute it under certain conditions;");
     
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix("!")) // set the bot's prefix
+        // set the bot's prefix
+        .configure(|c| c.prefix("!")) 
         .group(&GENERAL_GROUP);
-
-    // Connect with our database
-    let dbconn = sqlite::open(env::var("DATABASE").expect("database_file")).unwrap();
-    // Enable foreign key constraint enforcement
-    dbconn.execute("PRAGMA foreign_keys=ON;").unwrap();
-
+    
     // Login with a bot token from the environment
     let token = env::var("DISCORD_TOKEN").expect("token");
     let mut client = Client::builder(token)
@@ -174,8 +185,18 @@ async fn main() {
         })
         .await
         .expect("Error creating client");
+    
+    // Initialize the database
+    match database::init() {
+        Ok(conn) => {
+            println!("Connected to database");
+            // Store the database connection in the client
+            client.data.write().await.insert::<Database>(conn);
+        },
+        Err(_) => panic!("Failed to initialize database."),
+    }
 
-    // start listening for events by starting a single shard
+// start listening for events by starting a single shard
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -184,7 +205,18 @@ async fn main() {
 #[command]
 async fn server(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "add code to modify server settings").await?;
-    Ok(())
+    // just debugging for now
+    match msg.guild_id {
+        Some(gid) => {
+            let data = ctx.data.read().await;
+            match data.get::<Database>() {
+                Some(conn) => database::add_guild(conn, gid.to_string()),
+                None => {},
+            }
+        },
+        None => {},
+    }
+   Ok(())
 }
 
 #[command]
@@ -207,7 +239,16 @@ async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "__Commands__\n**!channel** - Change settings for your current voice channel\n**!category** - Change settings for your current voice channel's category\n**!server** - Set default settings for the server\n**!invite** - Get the invite link for this bot\n__Subcommands__\n**enable** - Enables ChannelChanger for your current voice channel/category\n**disable** - Disables ChannelChanger for your current voice channel/category\n**template** - Sets the pattern to use for channel names. Default: `X - Y`").await?;
+    msg.reply(ctx, "__Commands__\n\
+              **!channel** - Change settings for your current voice channel\n\
+              **!category** - Change settings for your current voice channel's category\n\
+              **!server** - Set default settings for the server\n\
+              **!invite** - Get the invite link for this bot\n\
+              __Subcommands__\n\
+              **enable** - Enables ChannelChanger for your current voice channel/category\n\
+              **disable** - Disables ChannelChanger for your current voice channel/category\n\
+              **template** - Sets the pattern to use for channel names. Default: `X - Y`\
+    ").await?;
     Ok(())
 }
 

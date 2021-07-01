@@ -10,7 +10,7 @@ edition = "2018"
 
 [dependencies]
 
-sqlite = "0.26.0"
+rusqlite = "0.25.3"
 
 [dependencies.tokio]
 version = "1.7.0"

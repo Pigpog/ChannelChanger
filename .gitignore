@@ -4,4 +4,4 @@ Cargo.lock
 **/*.rs.bk
 *.pdb
 env
-
+run.sh
