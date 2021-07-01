@@ -79,3 +79,12 @@ pub fn add_guild(conn: &Mutex<Connection>, guild_id: String) {
     }
 }
 
+// Deletes a guild from the guilds table
+pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
+    let success = conn.clone().lock().unwrap().execute("DELETE FROM guilds WHERE guild_id = ?1", [guild_id]);
+    match success {
+        Ok(_) => println!("Successfully deleted server"),
+        Err(e) => eprintln!("add_guild: Error: {}", e),
+    }
+}
+

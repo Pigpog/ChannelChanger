@@ -23,7 +23,7 @@ use serenity::{
         gateway::Ready,
         prelude::{GuildId, ChannelId, ActivityType},
         voice::VoiceState,
-        guild::Guild,
+        guild::{Guild, GuildUnavailable},
     },
     client::{
         Client,
@@ -112,10 +112,11 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
 
 #[async_trait]
 impl EventHandler for Handler {
+    // when the client is ready
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} ready", ready.user.name);
     }
-
+    // when the bot joins a server
     async fn guild_create(&self, _ctx: Context, _guild: Guild, _is_new: bool) {
         if _is_new {
             let data = _ctx.data.read().await;
@@ -125,7 +126,14 @@ impl EventHandler for Handler {
             }
         }
     }
-
+    // when the bot leaves a server
+    async fn guild_delete(&self, _ctx: Context, _incomplete: GuildUnavailable, _full: Option<Guild>) {
+        let data = _ctx.data.read().await;
+        match data.get::<Database>() {
+            Some(conn) => database::del_guild(conn, _incomplete.id.to_string()),
+            None => {},
+        }
+    }
     async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) {
         // The way this function is ordered is important
         // because of my (lazy?) use of return
