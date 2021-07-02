@@ -88,3 +88,11 @@ pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
     }
 }
 
+// Adds a channel with no settings to the channels table
+pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) {
+    let success = conn.clone().lock().unwrap().execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL, NULL)", [channel_id, guild_id, name]);
+    match success {
+        Ok(_) => println!("Successfully added channel"),
+        Err(e) => eprintln!("add_channel: Error: {}", e),
+    }
+}

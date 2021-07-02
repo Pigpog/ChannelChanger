@@ -210,8 +210,32 @@ async fn main() {
     }
 }
 
+// retrieve the ID of a msg author's voice channel, if any.
+async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String)> {
+    match msg.guild_id {
+        Some(gid) => {
+            match gid.to_guild_cached(&ctx.cache).await {
+            Some(guild) => { 
+                match guild.voice_states.get_key_value(&msg.author.id) {
+                    Some((_key, vstate)) => {
+                        match vstate.channel_id {
+                            Some(chan_id) => return Some((chan_id.to_string(), chan_id.name(&ctx.cache).await.unwrap().to_string())),
+                            None => return None,
+                        }
+                    },
+                    None => return None,
+                }
+            },
+            None => return None,
+            }
+        },
+        None => return None,
+    }
+}
+
 #[command]
 async fn server(ctx: &Context, msg: &Message) -> CommandResult {
+    println!("{:?}", msg.content);
     msg.reply(ctx, "add code to modify server settings").await?;
     // just debugging for now
     match msg.guild_id {
@@ -228,8 +252,38 @@ async fn server(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[required_permissions(MANAGE_CHANNELS)]
 async fn channel(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "add code to modify channel settings").await?;
+    match msg.guild_id {
+        Some(gid) => {
+            // ignore messages from bots
+            if !msg.author.bot {
+                match get_vc_id(ctx, msg).await {
+                    Some((vc_id, vc_name)) => {
+                        println!("{}", vc_id);
+                        let data = ctx.data.read().await;
+                        let conn = data.get::<Database>().unwrap();
+                        let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
+                        match args[1] {
+                            "add" => {
+                                database::add_channel(conn, gid.to_string(), vc_id, vc_name);
+                                msg.reply(ctx, "Successfully added `vc_name`").await?;
+                            },
+                            &_ => {msg.reply(ctx, "You must specify a subcommand").await?;},
+                        }
+                    },
+                    None => {
+                        msg.reply(ctx, "You must be in a voice channel to use this command").await?;
+                    },
+                }
+                Ok(());
+            } else {
+                Ok(());
+            };
+        },
+        None => {},
+    }
     Ok(())
 }
 
