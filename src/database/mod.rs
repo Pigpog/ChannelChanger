@@ -119,7 +119,7 @@ pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: Str
             Ok(())
         },
         Err(e) => {
-            if e.to_string() == "UNIQUE constraint failed: categories.channel_id" {
+            if e.to_string() == "UNIQUE constraint failed: categories.category_id" {
                 return Err(Error::new(ErrorKind::Other, "Category already added"));
             }
             eprintln!("add_category: Error: {}", e);
