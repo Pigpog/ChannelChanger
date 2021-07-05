@@ -211,7 +211,7 @@ async fn main() {
 }
 
 // retrieve the ID of a msg author's voice channel, if any.
-async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String)> {
+async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String, Option<ChannelId>)> {
     if msg.guild_id.is_none() { return None; };
     let guild_id = msg.guild_id.unwrap();
     match guild_id.to_guild_cached(&ctx.cache).await {
@@ -220,7 +220,12 @@ async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String)> {
                 Some((_key, vstate)) => {
                     match vstate.channel_id {
                         Some(chan_id) => {
-                            return Some((chan_id.to_string(), chan_id.name(&ctx.cache).await.unwrap().to_string()));
+                            match chan_id.to_channel(&ctx).await {
+                                Ok(channel) => {
+                                    return Some((chan_id.to_string(), chan_id.name(&ctx.cache).await.unwrap().to_string(), channel.guild().unwrap().category_id));
+                                },
+                                Err(_) => return None,
+                            }
                         },
                         None => return None,
                     }
@@ -249,7 +254,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     };
 
     match get_vc_id(ctx, msg).await {
-        Some((vc_id, vc_name)) => {
+        Some((vc_id, vc_name, cat_id)) => {
             println!("{}", vc_id);
             let data = ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
@@ -261,12 +266,18 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
                     };
                 },
                 "category" => {
-                    let voice_channel = vc_id.to_channel(ctx.http).unwrap();
-                    let cat_id = voice_channel.guild().unwrap().category_id;
-                    match database::add_category(conn, guild_id.to_string(), cat_id) {
-                        Ok(_) => msg.reply(ctx, format!("Successfully added category `{}`", vc_name)).await?,
-                        Err(e) => msg.reply(ctx, format!("Error adding `{}`: {}", vc_name, e)).await?,
-                    };
+                    match cat_id {
+                        Some(category_id) => {
+                            match database::add_category(conn, guild_id.to_string(), category_id.to_string()) {
+                                Ok(_) => msg.reply(ctx, format!("Successfully added category `{}`", vc_name)).await?,
+                                Err(e) => msg.reply(ctx, format!("Error adding category: {}", e)).await?,
+                            };
+                        },
+                        None => {
+                            msg.reply(ctx, format!("{} is not in a category", vc_name)).await?;
+                            return Err(CommandError::from("No category"));
+                        },
+                    }
                 },
                 &_ => {
                     msg.reply(ctx, "Invalid subcommand").await?;

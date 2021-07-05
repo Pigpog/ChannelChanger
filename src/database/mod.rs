@@ -45,8 +45,9 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
     conn.execute("
         CREATE TABLE IF NOT EXISTS guilds (
             guild_id TEXT PRIMARY KEY
-        );
+        );", [])?;
 
+    conn.execute("
         CREATE TABLE IF NOT EXISTS channels (
             channel_id TEXT,
             guild_id TEXT,
@@ -57,8 +58,9 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
                     REFERENCES guilds (guild_id)
                         ON DELETE CASCADE
                         ON UPDATE NO ACTION
-        );
+        );", [])?;
 
+    conn.execute("
         CREATE TABLE IF NOT EXISTS categories (
             category_id TEXT PRIMARY KEY,
             guild_id TEXT,
@@ -113,14 +115,14 @@ pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: Str
     let connection = conn.clone().lock().unwrap();
     match connection.execute("INSERT INTO categories VALUES(?1, ?2, NULL)", [category_id, guild_id]) {
         Ok(_) => {
-            println!("Successfully added channel");
+            println!("Successfully added category");
             Ok(())
         },
         Err(e) => {
-            if e.to_string() == "UNIQUE constraint failed: channels.channel_id" {
-                return Err(Error::new(ErrorKind::Other, "Channel already added"));
+            if e.to_string() == "UNIQUE constraint failed: categories.channel_id" {
+                return Err(Error::new(ErrorKind::Other, "Category already added"));
             }
-            eprintln!("add_channel: Error: {}", e);
+            eprintln!("add_category: Error: {}", e);
             return Err(Error::new(ErrorKind::Other, "An unknown error occurred"));
         },
     }
