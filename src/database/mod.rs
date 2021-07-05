@@ -16,8 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{env, sync::Mutex};
-use rusqlite::{Connection, Error, Result};
+use std::{
+    env,
+    sync::Mutex,
+    io::{Error, ErrorKind},
+};
+
+use rusqlite::{Connection, Result};
 
 use serenity::prelude::TypeMapKey;
 
@@ -29,7 +34,7 @@ impl TypeMapKey for Database {
     type Value = Mutex<Connection>;
 }
 
-pub fn init() -> Result<Mutex<Connection>, Error> {
+pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
     // Connect with our database
     let path = env::var("DATABASE").expect("database_file");
     let conn = Connection::open(&path).unwrap();
@@ -37,42 +42,39 @@ pub fn init() -> Result<Mutex<Connection>, Error> {
     conn.execute("PRAGMA foreign_keys=ON;", []).unwrap();
 
     // Create fresh tables if they dont exist
-    conn.execute("CREATE TABLE IF NOT EXISTS guilds (
-                    guild_id TEXT PRIMARY KEY,
-                    majority INTEGER,
-                    template TEXT
-                  );", [])?;
+    conn.execute("
+        CREATE TABLE IF NOT EXISTS guilds (
+            guild_id TEXT PRIMARY KEY
+        );
 
-    conn.execute("CREATE TABLE IF NOT EXISTS channels (
-                    channel_id TEXT,
-                    guild_id TEXT,
-                    name TEXT NOT NULL,
-                    majority INTEGER,
-                    template TEXT,
-                    PRIMARY KEY (channel_id),
-                        FOREIGN KEY (guild_id)
-                            REFERENCES guilds (guild_id)
-                                ON DELETE CASCADE
-                                ON UPDATE NO ACTION
-                  );", [])?;
+        CREATE TABLE IF NOT EXISTS channels (
+            channel_id TEXT,
+            guild_id TEXT,
+            name TEXT NOT NULL,
+            template TEXT,
+            PRIMARY KEY (channel_id),
+                FOREIGN KEY (guild_id)
+                    REFERENCES guilds (guild_id)
+                        ON DELETE CASCADE
+                        ON UPDATE NO ACTION
+        );
 
-    conn.execute("CREATE TABLE IF NOT EXISTS categories (
-                    category_id TEXT PRIMARY KEY,
-                    guild_id TEXT,
-                    majority INTEGER,
-                    template TEXT,
-                    FOREIGN KEY (guild_id)
-                        REFERENCES guilds (guild_id)
-                            ON DELETE CASCADE
-                            ON UPDATE NO ACTION
-                  );", [])?;
+        CREATE TABLE IF NOT EXISTS categories (
+            category_id TEXT PRIMARY KEY,
+            guild_id TEXT,
+            template TEXT,
+            FOREIGN KEY (guild_id)
+                REFERENCES guilds (guild_id)
+                    ON DELETE CASCADE
+                    ON UPDATE NO ACTION
+        );", [])?;
 
     Ok(Mutex::new(conn))
 }
 
 // Adds a guild with no settings to the guilds table
 pub fn add_guild(conn: &Mutex<Connection>, guild_id: String) {
-    let success = conn.clone().lock().unwrap().execute("INSERT INTO guilds VALUES(?1, NULL, NULL)", [guild_id]);
+    let success = conn.clone().lock().unwrap().execute("INSERT INTO guilds VALUES(?1)", [guild_id]);
     match success {
         Ok(_) => println!("Successfully added server"),
         Err(e) => eprintln!("add_guild: Error: {}", e),
@@ -89,10 +91,37 @@ pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
 }
 
 // Adds a channel with no settings to the channels table
-pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) {
-    let success = conn.clone().lock().unwrap().execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL, NULL)", [channel_id, guild_id, name]);
-    match success {
-        Ok(_) => println!("Successfully added channel"),
-        Err(e) => eprintln!("add_channel: Error: {}", e),
+pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
+        Ok(_) => {
+            println!("Successfully added channel");
+            Ok(())
+        },
+        Err(e) => {
+            if e.to_string() == "UNIQUE constraint failed: channels.channel_id" {
+                return Err(Error::new(ErrorKind::Other, "Channel already added"));
+            }
+            eprintln!("add_channel: Error: {}", e);
+            return Err(Error::new(ErrorKind::Other, "An unknown error occurred"));
+        },
+    }
+}
+
+// Adds a category with no settings to the channels table
+pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    match connection.execute("INSERT INTO categories VALUES(?1, ?2, NULL)", [category_id, guild_id]) {
+        Ok(_) => {
+            println!("Successfully added channel");
+            Ok(())
+        },
+        Err(e) => {
+            if e.to_string() == "UNIQUE constraint failed: channels.channel_id" {
+                return Err(Error::new(ErrorKind::Other, "Channel already added"));
+            }
+            eprintln!("add_channel: Error: {}", e);
+            return Err(Error::new(ErrorKind::Other, "An unknown error occurred"));
+        },
     }
 }

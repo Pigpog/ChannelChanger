@@ -33,6 +33,7 @@ use serenity::{
     },
     framework::standard::{
         StandardFramework,
+        CommandError,
         CommandResult,
         macros::{
             command,
@@ -50,7 +51,7 @@ mod database;
 use database::Database;
 
 #[group]
-#[commands(server, channel, category, invite, help)]
+#[commands(add, remove, template, invite, help)]
 
 struct General;
 
@@ -175,8 +176,7 @@ async fn main() {
     println!("redistribute it under certain conditions;");
     
     let framework = StandardFramework::new()
-        // set the bot's prefix
-        .configure(|c| c.prefix("!")) 
+        .configure(|c| c.prefix("!")) // set the bot's prefix
         .group(&GENERAL_GROUP);
     
     // Login with a bot token from the environment
@@ -212,21 +212,20 @@ async fn main() {
 
 // retrieve the ID of a msg author's voice channel, if any.
 async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String)> {
-    match msg.guild_id {
-        Some(gid) => {
-            match gid.to_guild_cached(&ctx.cache).await {
-            Some(guild) => { 
-                match guild.voice_states.get_key_value(&msg.author.id) {
-                    Some((_key, vstate)) => {
-                        match vstate.channel_id {
-                            Some(chan_id) => return Some((chan_id.to_string(), chan_id.name(&ctx.cache).await.unwrap().to_string())),
-                            None => return None,
-                        }
-                    },
-                    None => return None,
-                }
-            },
-            None => return None,
+    if msg.guild_id.is_none() { return None; };
+    let guild_id = msg.guild_id.unwrap();
+    match guild_id.to_guild_cached(&ctx.cache).await {
+        Some(guild) => { 
+            match guild.voice_states.get_key_value(&msg.author.id) {
+                Some((_key, vstate)) => {
+                    match vstate.channel_id {
+                        Some(chan_id) => {
+                            return Some((chan_id.to_string(), chan_id.name(&ctx.cache).await.unwrap().to_string()));
+                        },
+                        None => return None,
+                    }
+                },
+                None => return None,
             }
         },
         None => return None,
@@ -234,9 +233,58 @@ async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String)> {
 }
 
 #[command]
-async fn server(ctx: &Context, msg: &Message) -> CommandResult {
+#[required_permissions(MANAGE_CHANNELS)]
+async fn add(ctx: &Context, msg: &Message) -> CommandResult {
+    // ignore messages from bots
+    if msg.author.bot { return Ok(()) };
+    // ignore DMs
+    if msg.guild_id.is_none() { return Ok(()); };
+
+    let guild_id = msg.guild_id.unwrap();
+    let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
+
+    if args.len() == 1 {
+        msg.reply(ctx, "You must specify a subcommand").await?;
+        return Err(CommandError::from("No subcommand specified"));
+    };
+
+    match get_vc_id(ctx, msg).await {
+        Some((vc_id, vc_name)) => {
+            println!("{}", vc_id);
+            let data = ctx.data.read().await;
+            let conn = data.get::<Database>().unwrap();
+            match args[1] {
+                "channel" => {
+                    match database::add_channel(conn, guild_id.to_string(), vc_id, vc_name.clone()) {
+                        Ok(_) => msg.reply(ctx, format!("Successfully added channel `{}`", vc_name)).await?,
+                        Err(e) => msg.reply(ctx, format!("Error adding `{}`: {}", vc_name, e)).await?,
+                    };
+                },
+                "category" => {
+                    let voice_channel = vc_id.to_channel(ctx.http).unwrap();
+                    let cat_id = voice_channel.guild().unwrap().category_id;
+                    match database::add_category(conn, guild_id.to_string(), cat_id) {
+                        Ok(_) => msg.reply(ctx, format!("Successfully added category `{}`", vc_name)).await?,
+                        Err(e) => msg.reply(ctx, format!("Error adding `{}`: {}", vc_name, e)).await?,
+                    };
+                },
+                &_ => {
+                    msg.reply(ctx, "Invalid subcommand").await?;
+                    return Err(CommandError::from("Invalid subcommand"));
+                },
+            }
+        },
+        None => {
+            msg.reply(ctx, "You must be in a voice channel to use this command").await?;
+        },
+    }
+    Ok(())
+}
+
+#[command]
+async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
     println!("{:?}", msg.content);
-    msg.reply(ctx, "add code to modify server settings").await?;
+    msg.reply(ctx, "add code to remove stuff").await?;
     // just debugging for now
     match msg.guild_id {
         Some(gid) => {
@@ -251,45 +299,10 @@ async fn server(ctx: &Context, msg: &Message) -> CommandResult {
    Ok(())
 }
 
-#[command]
-#[required_permissions(MANAGE_CHANNELS)]
-async fn channel(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "add code to modify channel settings").await?;
-    match msg.guild_id {
-        Some(gid) => {
-            // ignore messages from bots
-            if !msg.author.bot {
-                match get_vc_id(ctx, msg).await {
-                    Some((vc_id, vc_name)) => {
-                        println!("{}", vc_id);
-                        let data = ctx.data.read().await;
-                        let conn = data.get::<Database>().unwrap();
-                        let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
-                        match args[1] {
-                            "add" => {
-                                database::add_channel(conn, gid.to_string(), vc_id, vc_name);
-                                msg.reply(ctx, "Successfully added `vc_name`").await?;
-                            },
-                            &_ => {msg.reply(ctx, "You must specify a subcommand").await?;},
-                        }
-                    },
-                    None => {
-                        msg.reply(ctx, "You must be in a voice channel to use this command").await?;
-                    },
-                }
-                Ok(());
-            } else {
-                Ok(());
-            };
-        },
-        None => {},
-    }
-    Ok(())
-}
 
 #[command]
-async fn category(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "add code to modify category settings").await?;
+async fn template(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "add code to modify templates").await?;
     Ok(())
 }
 
