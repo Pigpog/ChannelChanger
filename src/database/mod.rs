@@ -115,7 +115,8 @@ pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: Strin
 // Gets data about a channel
 pub fn get_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(String, Option<String>)> {
     let connection = conn.clone().lock().unwrap();
-    return connection.query_row("SELECT name, template FROM channels WHERE channel_id = ?", [channel_id], |row| {
+    let mut query = connection.prepare_cached("SELECT name, template FROM channels WHERE channel_id = ?")?;
+    return query.query_row([channel_id], |row| {
         Ok((row.get(0)?, row.get(1)?))
     });
 }
