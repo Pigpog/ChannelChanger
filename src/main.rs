@@ -65,7 +65,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         Ok((name, template)) => {
             println!("VC Name: {}", name);
         },
-        Err(_) => {println!("Error")},
+        Err(e) => {println!("Error: {}", e)},
     };
 
     let new_name: String;

@@ -115,14 +115,9 @@ pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: Strin
 // Gets data about a channel
 pub fn get_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(String, Option<String>)> {
     let connection = conn.clone().lock().unwrap();
-    let mut name: String = String::new();
-    let mut template: Option<String> = None;
-    connection.query_row("SELECT name, template FROM channels WHERE channel_id='?1'", [channel_id], |row| {
-        name = row.get(2)?;
-        template = row.get(3)?;
-        Ok(())
-    })?;
-    return Ok((name.to_string(), template));
+    return connection.query_row("SELECT name, template FROM channels WHERE channel_id = ?", [channel_id], |row| {
+        Ok((row.get(0)?, row.get(1)?))
+    });
 }
 
 // Adds a category with no settings to the channels table
