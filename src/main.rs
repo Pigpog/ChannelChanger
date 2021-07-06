@@ -58,6 +58,16 @@ struct General;
 struct Handler;
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
+    let data = ctx.data.read().await;
+    let conn = data.get::<Database>().unwrap();
+    // just debugging for now
+    match database::get_channel(conn, channel_id.to_string()) {
+        Ok((name, template)) => {
+            println!("VC Name: {}", name);
+        },
+        Err(_) => {println!("Error")},
+    };
+
     let new_name: String;
     let mut old_name: String = String::new();
     let mut games: HashMap<String, usize> = HashMap::new();
@@ -215,7 +225,7 @@ async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String, Opti
     if msg.guild_id.is_none() { return None; };
     let guild_id = msg.guild_id.unwrap();
     match guild_id.to_guild_cached(&ctx.cache).await {
-        Some(guild) => { 
+        Some(guild) => {
             match guild.voice_states.get_key_value(&msg.author.id) {
                 Some((_key, vstate)) => {
                     match vstate.channel_id {
@@ -326,14 +336,10 @@ async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "__Commands__\n\
-              **!channel** - Change settings for your current voice channel\n\
-              **!category** - Change settings for your current voice channel's category\n\
-              **!server** - Set default settings for the server\n\
-              **!invite** - Get the invite link for this bot\n\
-              __Subcommands__\n\
-              **enable** - Enables ChannelChanger for your current voice channel/category\n\
-              **disable** - Disables ChannelChanger for your current voice channel/category\n\
-              **template** - Sets the pattern to use for channel names. Default: `X - Y`\
+              **!enable** - Enables ChannelChanger for your current voice channel/category\n\
+              **!disable** - Disables ChannelChanger for your current voice channel/category\n\
+              **!template** - Sets the pattern to use for channel names. Default: `X - Y`\n\
+              **!invite** - Get the invite link for this bot\
     ").await?;
     Ok(())
 }

@@ -95,7 +95,9 @@ pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
 // Adds a channel with no settings to the channels table
 pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
-    match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
+    let mut query = connection.prepare_cached("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)").unwrap();
+    //match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
+    match query.execute([channel_id, guild_id, name]) {
         Ok(_) => {
             println!("Successfully added channel");
             Ok(())
@@ -108,6 +110,19 @@ pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: Strin
             return Err(Error::new(ErrorKind::Other, "An unknown error occurred"));
         },
     }
+}
+
+// Gets data about a channel
+pub fn get_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(String, Option<String>)> {
+    let connection = conn.clone().lock().unwrap();
+    let mut name: String = String::new();
+    let mut template: Option<String> = None;
+    connection.query_row("SELECT name, template FROM channels WHERE channel_id='?1'", [channel_id], |row| {
+        name = row.get(2)?;
+        template = row.get(3)?;
+        Ok(())
+    })?;
+    return Ok((name.to_string(), template));
 }
 
 // Adds a category with no settings to the channels table
