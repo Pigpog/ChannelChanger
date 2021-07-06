@@ -51,7 +51,7 @@ mod database;
 use database::Database;
 
 #[group]
-#[commands(add, remove, template, invite, help)]
+#[commands(enable, disable, template, invite, help)]
 
 struct General;
 
@@ -249,7 +249,7 @@ async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String, Opti
 
 #[command]
 #[required_permissions(MANAGE_CHANNELS)]
-async fn add(ctx: &Context, msg: &Message) -> CommandResult {
+async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
     // ignore messages from bots
     if msg.author.bot { return Ok(()) };
     // ignore DMs
@@ -271,16 +271,16 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
             match args[1] {
                 "channel" => {
                     match database::add_channel(conn, guild_id.to_string(), vc_id, vc_name.clone()) {
-                        Ok(_) => msg.reply(ctx, format!("Successfully added channel `{}`", vc_name)).await?,
-                        Err(e) => msg.reply(ctx, format!("Error adding `{}`: {}", vc_name, e)).await?,
+                        Ok(_) => msg.reply(ctx, format!("Enabled changes for channel `{}`", vc_name)).await?,
+                        Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
                     };
                 },
                 "category" => {
                     match cat_id {
                         Some(category_id) => {
                             match database::add_category(conn, guild_id.to_string(), category_id.to_string()) {
-                                Ok(_) => msg.reply(ctx, format!("Successfully added category `{}`", vc_name)).await?,
-                                Err(e) => msg.reply(ctx, format!("Error adding category: {}", e)).await?,
+                                Ok(_) => msg.reply(ctx, format!("Successfully enabled changes for category `{}`", vc_name)).await?,
+                                Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
                             };
                         },
                         None => {
@@ -303,7 +303,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
+async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
     println!("{:?}", msg.content);
     msg.reply(ctx, "add code to remove stuff").await?;
     // just debugging for now
