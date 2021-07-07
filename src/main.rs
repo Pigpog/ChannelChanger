@@ -21,7 +21,7 @@ use serenity::{
     model::{
         channel::Message,
         gateway::Ready,
-        prelude::{GuildId, ChannelId, ActivityType},
+        prelude::{GuildId, ChannelId, ActivityType, PresenceUpdateEvent},
         voice::VoiceState,
         guild::{Guild, GuildUnavailable},
     },
@@ -60,21 +60,31 @@ struct Handler;
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     let data = ctx.data.read().await;
     let conn = data.get::<Database>().unwrap();
-    // just debugging for now
+    let template;
+    let old_name;
+    let new_name: String;
+    // Current name of the voice channel
+    let mut curr_name: String = String::new();
+    let mut games: HashMap<String, usize> = HashMap::new();
+
     match database::get_channel(conn, channel_id.to_string()) {
-        Ok((name, template)) => {
-            println!("VC Name: {}", name);
+        Ok((name, templ)) => {
+            println!("Original name: {}", name);
+            old_name = name;
+            template = templ.unwrap_or(String::from("X - Y"));
+            println!("Template: {}", template);
+
         },
-        Err(e) => {println!("Error: {}", e)},
+        Err(e) => {
+            println!("Error: {}", e);
+            return;
+        },
     };
 
-    let new_name: String;
-    let mut old_name: String = String::new();
-    let mut games: HashMap<String, usize> = HashMap::new();
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
-            old_name = gchannel.name.clone();
+            curr_name = gchannel.name.clone();
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
             for member in gchannel.members(&ctx).await.unwrap() {
@@ -101,20 +111,20 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         Some(major) => {
             // Set channel name to game
             println!("Majority: {}", major);
-            new_name = major;
+            new_name = template.replacen("X", &old_name, 1).replacen("Y", &major, 1);
         }, 
         None => {
             // Reset channel name
-            new_name = String::from("test");
+            new_name = old_name.clone();
         },
     }
 
     // We don't need to change the name
-    if new_name == old_name {
+    if new_name == curr_name {
         return;
     }
 
-    println!("Changing channel {} -> {}", old_name, new_name);
+    println!("Changing channel {} -> {}", curr_name, new_name);
 
     if let Err(why) = channel_id.edit(&ctx.http, |c| c.name(new_name)).await {
         println!("Error: {}", why);
@@ -172,9 +182,12 @@ impl EventHandler for Handler {
         }
         // Check your new channel
         match _new.channel_id {
-            Some(channel_id) => { change_channel(&_ctx, channel_id).await; },
+            Some(channel_id) => change_channel(&_ctx, channel_id).await,
             None => {},
         }
+    }
+    async fn presence_update(&self, _ctx: Context, _new_data: PresenceUpdateEvent) {
+        
     }
 }
 
@@ -303,6 +316,7 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[required_permissions(MANAGE_CHANNELS)]
 async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
     println!("{:?}", msg.content);
     msg.reply(ctx, "add code to remove stuff").await?;
@@ -322,6 +336,7 @@ async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
 
 
 #[command]
+#[required_permissions(MANAGE_CHANNELS)]
 async fn template(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "add code to modify templates").await?;
     Ok(())
