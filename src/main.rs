@@ -186,8 +186,27 @@ impl EventHandler for Handler {
             None => {},
         }
     }
-    async fn presence_update(&self, _ctx: Context, _new_data: PresenceUpdateEvent) {
-        
+    async fn presence_update(&self, ctx: Context, new_data: PresenceUpdateEvent) {
+        match new_data.guild_id {
+            Some(guild_id) => {
+                println!("{}", guild_id);
+                match guild_id.to_guild_cached(&ctx.cache).await {
+                    Some(guild) => {
+                        match guild.voice_states.get_key_value(&new_data.presence.user_id) {
+                            Some((_key, vstate)) => {
+                                match vstate.channel_id {
+                                    Some(channel_id) => change_channel(&ctx, channel_id).await,
+                                    None => {},
+                                }
+                            },
+                            None => {},
+                        }
+                    },
+                    None => {},
+                }
+            },
+            None => println!("No guild"),
+        }
     }
 }
 
@@ -269,7 +288,7 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.guild_id.is_none() { return Ok(()); };
 
     let guild_id = msg.guild_id.unwrap();
-    let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
+    let args = msg.content.splitn(2, " ").collect::<Vec<_>>();
 
     if args.len() == 1 {
         msg.reply(ctx, "You must specify a subcommand").await?;
@@ -339,6 +358,38 @@ async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
 #[required_permissions(MANAGE_CHANNELS)]
 async fn template(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "add code to modify templates").await?;
+    let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
+
+    if args.len() > 3 {
+        msg.reply(ctx, "You must specify a subcommand and a template").await?;
+        return Err(CommandError::from("No subcommand specified"));
+    };
+    match get_vc_id(ctx, msg).await {
+        Some((vc_id, _vc_name, _cat_id)) => {
+
+            let data = ctx.data.read().await;
+            let conn = data.get::<Database>().unwrap();
+            match args[1] {
+                "channel" => {
+                    match database::set_channel_template(conn, vc_id, String::from(args[2])) {
+                        Ok(()) => {
+                            msg.reply(ctx, "Set channel template").await?;
+                        },
+                        Err(e) => {
+                            msg.reply(ctx, format!("An error occurred: {}", e)).await?;
+                        }
+                    }
+                },
+                &_ => {
+                    msg.reply(ctx, "Invalid subcommand").await?;
+                }
+            }
+        },
+        None => {
+            msg.reply(ctx, "You must be in a voice channel to use this command").await?;
+        },
+    }
+
     Ok(())
 }
 

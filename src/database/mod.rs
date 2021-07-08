@@ -121,6 +121,19 @@ pub fn get_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(Stri
     });
 }
 
+pub fn set_channel_template(conn: &Mutex<Connection>, channel_id: String, template: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("UPDATE channels SET template = ? WHERE channel_id = ?").unwrap();
+    match query.execute([template, channel_id]) {
+        Ok(_) => {
+            return Ok(())
+        },
+        Err(e) => {
+            return Err(Error::new(ErrorKind::Other, e));
+        },
+    }
+}
+
 // Adds a category with no settings to the channels table
 pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
@@ -138,3 +151,4 @@ pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: Str
         },
     }
 }
+
