@@ -10,19 +10,18 @@ Discord bot that automatically updates voice channel names based on what games p
 ![Demonstration](https://github.com/Pigpog/ChannelChanger/raw/master/example.png)
 
 ## Commands
-`!addvc`      Enables the bot for your connected voice channel.
+`!enable {channel, category}` Enables the bot for your connected voice channel or its category.
 
-`!removevc`   Disables the bot for your connected voice channel.
+`!disable {channel, category}` Disables the bot for your connected voice channel or its category.
 
-`!majority`   Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.
-
-`!template` Sets the template. Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
+`!template {channel, category} TEMPLATE` Sets the template for your connected voice channel or its category.
+Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
 
 ## Usage
 (Note: You and the bot need Manage Channels permission)
  - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
  - Join a voice channel
- - Send !addvc to a channel that the bot can see on the same server
+ - Send `!enable channel` to a channel that the bot can see on the same server
 
 ## Compiling
 
