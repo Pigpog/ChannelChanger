@@ -147,6 +147,19 @@ pub fn del_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(), E
     }
 }
 
+pub fn del_category(conn: &Mutex<Connection>, category_id: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("DELETE FROM categories WHERE category_id = ?").unwrap();
+    match query.execute([category_id]) {
+        Ok(_) => {
+            return Ok(())
+        },
+        Err(e) => {
+            return Err(Error::new(ErrorKind::Other, e));
+        },
+    }
+}
+
 // Adds a category with no settings to the channels table
 pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();

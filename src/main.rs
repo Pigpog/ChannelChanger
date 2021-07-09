@@ -341,18 +341,32 @@ async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
     };
 
     match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
-        Some((vc_id, _vc_name, _cat_id)) => {
+        Some((vc_id, vc_name, cat_id)) => {
             let data = ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
             match args[1] {
                 "channel" => {
                     match database::del_channel(conn, vc_id.to_string()) {
                         Ok(()) => {
-                            msg.reply(ctx, "Disabled channel").await?;
+                            msg.reply(ctx, format!("Disabled changes for channel {}", vc_name)).await?;
                         },
                         Err(e) => {
                             msg.reply(ctx, format!("An error occurred: {}", e)).await?;
                         }
+                    }
+                },
+                "category" => {
+                    match cat_id {
+                        Some(category_id) => {
+                            match database::del_category(conn, category_id.to_string()) {
+                                Ok(_) => msg.reply(ctx, "Disabled changes for category").await?,
+                                Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
+                            };
+                        },
+                        None => {
+                            msg.reply(ctx, format!("{} is not in a category", vc_name)).await?;
+                            return Err(CommandError::from("No category"));
+                        },
                     }
                 },
                 &_ => {
