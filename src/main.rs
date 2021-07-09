@@ -21,7 +21,13 @@ use serenity::{
     model::{
         channel::Message,
         gateway::Ready,
-        prelude::{GuildId, ChannelId, UserId, ActivityType, PresenceUpdateEvent},
+        prelude::{
+            GuildId,
+            ChannelId,
+            UserId,
+            ActivityType,
+            PresenceUpdateEvent
+        },
         voice::VoiceState,
         guild::{Guild, GuildUnavailable},
     },
@@ -280,7 +286,7 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
     let guild_id = msg.guild_id.unwrap();
     let args = msg.content.splitn(2, " ").collect::<Vec<_>>();
 
-    if args.len() == 1 {
+    if args.len() < 2 {
         msg.reply(ctx, "You must specify a subcommand").await?;
         return Err(CommandError::from("No subcommand specified"));
     };
@@ -327,20 +333,40 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[required_permissions(MANAGE_CHANNELS)]
 async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
-    println!("{:?}", msg.content);
-    msg.reply(ctx, "add code to remove stuff").await?;
-    // just debugging for now
-    match msg.guild_id {
-        Some(gid) => {
+    let args = msg.content.splitn(2, " ").collect::<Vec<_>>();
+
+    if args.len() < 2 {
+        msg.reply(ctx, "You must specify a subcommand").await?;
+        return Err(CommandError::from("No subcommand specified"));
+    };
+
+    match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
+        Some((vc_id, _vc_name, _cat_id)) => {
             let data = ctx.data.read().await;
-            match data.get::<Database>() {
-                Some(conn) => database::add_guild(conn, gid.to_string()),
-                None => {},
+            let conn = data.get::<Database>().unwrap();
+            match args[1] {
+                "channel" => {
+                    match database::del_channel(conn, vc_id.to_string()) {
+                        Ok(()) => {
+                            msg.reply(ctx, "Disabled channel").await?;
+                        },
+                        Err(e) => {
+                            msg.reply(ctx, format!("An error occurred: {}", e)).await?;
+                        }
+                    }
+                },
+                &_ => {
+                    msg.reply(ctx, "Invalid subcommand").await?;
+                }
             }
         },
-        None => {},
+        None => {
+            msg.reply(ctx, "You must be in a voice channel to use this command").await?;
+        },
     }
-   Ok(())
+
+    Ok(())
+
 }
 
 
@@ -350,7 +376,7 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "add code to modify templates").await?;
     let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
 
-    if args.len() > 3 {
+    if args.len() < 3 {
         msg.reply(ctx, "You must specify a subcommand and a template").await?;
         return Err(CommandError::from("No subcommand specified"));
     };
