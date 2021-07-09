@@ -21,7 +21,7 @@ use serenity::{
     model::{
         channel::Message,
         gateway::Ready,
-        prelude::{GuildId, ChannelId, ActivityType, PresenceUpdateEvent},
+        prelude::{GuildId, ChannelId, UserId, ActivityType, PresenceUpdateEvent},
         voice::VoiceState,
         guild::{Guild, GuildUnavailable},
     },
@@ -131,6 +131,31 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     }
 }
 
+// retrieve the ID, name, and category ID of a user's voice channel, if any.
+async fn get_vc_id(ctx: &Context, user_id: UserId, guild_id: GuildId) -> Option<(ChannelId, String, Option<ChannelId>)> {
+    match guild_id.to_guild_cached(&ctx.cache).await {
+        Some(guild) => {
+            match guild.voice_states.get_key_value(&user_id) {
+                Some((_key, vstate)) => {
+                    match vstate.channel_id {
+                        Some(chan_id) => {
+                            match chan_id.to_channel(&ctx).await {
+                                Ok(channel) => {
+                                    return Some((chan_id, chan_id.name(&ctx.cache).await.unwrap().to_string(), channel.guild().unwrap().category_id));
+                                },
+                                Err(_) => return None,
+                            }
+                        },
+                        None => return None,
+                    }
+                },
+                None => return None,
+            }
+        },
+        None => return None,
+    }
+}
+
 #[async_trait]
 impl EventHandler for Handler {
     // when the client is ready
@@ -190,19 +215,11 @@ impl EventHandler for Handler {
         match new_data.guild_id {
             Some(guild_id) => {
                 println!("{}", guild_id);
-                match guild_id.to_guild_cached(&ctx.cache).await {
-                    Some(guild) => {
-                        match guild.voice_states.get_key_value(&new_data.presence.user_id) {
-                            Some((_key, vstate)) => {
-                                match vstate.channel_id {
-                                    Some(channel_id) => change_channel(&ctx, channel_id).await,
-                                    None => {},
-                                }
-                            },
-                            None => {},
-                        }
+                match get_vc_id(&ctx, new_data.presence.user_id, guild_id).await {
+                    Some((vc_id, _vc_name, _cat_id)) => {
+                        change_channel(&ctx, vc_id).await;
                     },
-                    None => {},
+                    None => { println!("Could not resolve channel")},
                 }
             },
             None => println!("No guild"),
@@ -252,33 +269,6 @@ async fn main() {
     }
 }
 
-// retrieve the ID of a msg author's voice channel, if any.
-async fn get_vc_id(ctx: &Context, msg: &Message) -> Option<(String, String, Option<ChannelId>)> {
-    if msg.guild_id.is_none() { return None; };
-    let guild_id = msg.guild_id.unwrap();
-    match guild_id.to_guild_cached(&ctx.cache).await {
-        Some(guild) => {
-            match guild.voice_states.get_key_value(&msg.author.id) {
-                Some((_key, vstate)) => {
-                    match vstate.channel_id {
-                        Some(chan_id) => {
-                            match chan_id.to_channel(&ctx).await {
-                                Ok(channel) => {
-                                    return Some((chan_id.to_string(), chan_id.name(&ctx.cache).await.unwrap().to_string(), channel.guild().unwrap().category_id));
-                                },
-                                Err(_) => return None,
-                            }
-                        },
-                        None => return None,
-                    }
-                },
-                None => return None,
-            }
-        },
-        None => return None,
-    }
-}
-
 #[command]
 #[required_permissions(MANAGE_CHANNELS)]
 async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
@@ -295,14 +285,14 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
         return Err(CommandError::from("No subcommand specified"));
     };
 
-    match get_vc_id(ctx, msg).await {
+    match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
         Some((vc_id, vc_name, cat_id)) => {
             println!("{}", vc_id);
             let data = ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
             match args[1] {
                 "channel" => {
-                    match database::add_channel(conn, guild_id.to_string(), vc_id, vc_name.clone()) {
+                    match database::add_channel(conn, guild_id.to_string(), vc_id.to_string(), vc_name.clone()) {
                         Ok(_) => msg.reply(ctx, format!("Enabled changes for channel `{}`", vc_name)).await?,
                         Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
                     };
@@ -364,14 +354,14 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
         msg.reply(ctx, "You must specify a subcommand and a template").await?;
         return Err(CommandError::from("No subcommand specified"));
     };
-    match get_vc_id(ctx, msg).await {
-        Some((vc_id, _vc_name, _cat_id)) => {
 
+    match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
+        Some((vc_id, _vc_name, _cat_id)) => {
             let data = ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
             match args[1] {
                 "channel" => {
-                    match database::set_channel_template(conn, vc_id, String::from(args[2])) {
+                    match database::set_channel_template(conn, vc_id.to_string(), String::from(args[2])) {
                         Ok(()) => {
                             msg.reply(ctx, "Set channel template").await?;
                         },
