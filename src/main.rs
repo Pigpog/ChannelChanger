@@ -117,6 +117,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         Some(major) => {
             // Set channel name to game
             println!("Majority: {}", major);
+            // TODO find a better way to do this
             new_name = template.replacen("X", &old_name, 1).replacen("Y", &major, 1);
         }, 
         None => {
@@ -299,16 +300,26 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
             match args[1] {
                 "channel" => {
                     match database::add_channel(conn, guild_id.to_string(), vc_id.to_string(), vc_name.clone()) {
-                        Ok(_) => msg.reply(ctx, format!("Enabled changes for channel `{}`", vc_name)).await?,
-                        Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
+                        Ok(_) => {
+                            msg.reply(ctx, format!("Enabled changes for channel `{}`", vc_name)).await?;
+                            change_channel(ctx, vc_id).await;
+                        },
+                        Err(e) => {
+                            msg.reply(ctx, format!("Error: {}", e)).await?;
+                        },
                     };
                 },
                 "category" => {
                     match cat_id {
                         Some(category_id) => {
                             match database::add_category(conn, guild_id.to_string(), category_id.to_string()) {
-                                Ok(_) => msg.reply(ctx, format!("Successfully enabled changes for category `{}`", vc_name)).await?,
-                                Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
+                                Ok(_) => {
+                                    msg.reply(ctx, format!("Successfully enabled changes for category `{}`", vc_name)).await?;
+                                    change_channel(ctx, vc_id).await;
+                                },
+                                Err(e) => {
+                                    msg.reply(ctx, format!("Error: {}", e)).await?;
+                                },
                             };
                         },
                         None => {
@@ -387,7 +398,6 @@ async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[required_permissions(MANAGE_CHANNELS)]
 async fn template(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "add code to modify templates").await?;
     let args = msg.content.splitn(3, " ").collect::<Vec<_>>();
 
     if args.len() < 3 {
@@ -403,7 +413,7 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
                 "channel" => {
                     match database::set_channel_template(conn, vc_id.to_string(), String::from(args[2])) {
                         Ok(()) => {
-                            msg.reply(ctx, "Set channel template").await?;
+                            msg.reply(ctx, format!("Set channel template to `{}`", args[2])).await?;
                         },
                         Err(e) => {
                             msg.reply(ctx, format!("An error occurred: {}", e)).await?;
@@ -411,7 +421,7 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
                     }
                 },
                 &_ => {
-                    msg.reply(ctx, "Invalid subcommand").await?;
+                    msg.reply(ctx, "Invalid subcommand. Valid subcommands are: `channel`, `category`").await?;
                 }
             }
         },

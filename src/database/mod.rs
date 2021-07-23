@@ -151,8 +151,12 @@ pub fn del_category(conn: &Mutex<Connection>, category_id: String) -> Result<(),
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("DELETE FROM categories WHERE category_id = ?").unwrap();
     match query.execute([category_id]) {
-        Ok(_) => {
-            return Ok(())
+        Ok(count) => {
+            if count > 0 {
+                return Ok(())
+            } else {
+                return Err(Error::new(ErrorKind::Other, "Category was not added"));
+            }
         },
         Err(e) => {
             return Err(Error::new(ErrorKind::Other, e));
