@@ -140,27 +140,11 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
 
 // retrieve the ID, name, and category ID of a user's voice channel, if any.
 async fn get_vc_id(ctx: &Context, user_id: UserId, guild_id: GuildId) -> Option<(ChannelId, String, Option<ChannelId>)> {
-    match guild_id.to_guild_cached(&ctx.cache).await {
-        Some(guild) => {
-            match guild.voice_states.get_key_value(&user_id) {
-                Some((_key, vstate)) => {
-                    match vstate.channel_id {
-                        Some(chan_id) => {
-                            match chan_id.to_channel(&ctx).await {
-                                Ok(channel) => {
-                                    return Some((chan_id, chan_id.name(&ctx.cache).await.unwrap().to_string(), channel.guild().unwrap().category_id));
-                                },
-                                Err(_) => return None,
-                            }
-                        },
-                        None => return None,
-                    }
-                },
-                None => return None,
-            }
-        },
-        None => return None,
-    }
+    let guild = guild_id.to_guild_cached(&ctx.cache).await?;
+    let (_key, vstate) = guild.voice_states.get_key_value(&user_id)?;
+    let chan_id = vstate.channel_id?;
+    let channel = chan_id.to_channel(&ctx).await.ok()?;
+    return Some((chan_id, chan_id.name(&ctx.cache).await.unwrap().to_string(), channel.guild().unwrap().category_id));
 }
 
 // syncs the guilds db table with the guilds of the client user
@@ -227,19 +211,15 @@ impl EventHandler for Handler {
     async fn guild_create(&self, _ctx: Context, _guild: Guild, _is_new: bool) {
         if _is_new {
             let data = _ctx.data.read().await;
-            match data.get::<Database>() {
-                Some(conn) => database::add_guild(conn, _guild.id.to_string()),
-                None => {},
-            }
+            let conn = data.get::<Database>().unwrap();
+             database::add_guild(conn, _guild.id.to_string());
         }
     }
     // when the bot leaves a server
     async fn guild_delete(&self, _ctx: Context, _incomplete: GuildUnavailable, _full: Option<Guild>) {
         let data = _ctx.data.read().await;
-        match data.get::<Database>() {
-            Some(conn) => database::del_guild(conn, _incomplete.id.to_string()),
-            None => {},
-        }
+        let conn = data.get::<Database>().unwrap();
+        database::del_guild(conn, _incomplete.id.to_string());
     }
     async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) {
         // The way this function is ordered is important
