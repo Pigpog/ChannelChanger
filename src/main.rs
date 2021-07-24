@@ -163,11 +163,65 @@ async fn get_vc_id(ctx: &Context, user_id: UserId, guild_id: GuildId) -> Option<
     }
 }
 
+// syncs the guilds db table with the guilds of the client user
+async fn guild_check(ctx: &Context) {
+    let data = ctx.data.read().await;
+    let conn = data.get::<Database>().unwrap();
+    // vector of guild ids in the database
+    let mut db_guilds = database::get_all_guilds(conn).unwrap();
+    // vector of guilds that the client user is in
+    let cli_guilds = ctx.cache.guilds().await;
+
+    // merely statistics
+    let mut add_count = 0;
+    let mut del_count = 0;
+
+    println!("Guilds in database: {}", db_guilds.len());
+    println!("Guilds from client: {}", cli_guilds.len());
+
+    for i in 0..cli_guilds.len() {
+        // index of this guild id if found in db_guilds
+        let mut position = 0;
+        // whether or not the guild id was found in db_guilds
+        let mut found = false;
+
+        // search for the cli_guild in db_guilds
+        for j in 0..db_guilds.len() {
+            if cli_guilds[i].to_string() == db_guilds[j] {
+                position = j;
+                found = true;
+                break;
+            }
+        }
+
+        if found {
+            // remove the guild from the vector to avoid
+            // deleting it from db in the next for loop
+            db_guilds.remove(position);
+        } else {
+            // add this guild to the database
+            database::add_guild(conn, cli_guilds[i].to_string());
+            add_count = add_count + 1;
+        }
+    }
+
+    // remove all of the remaining db_guilds from the db
+    for guild in db_guilds {
+        database::del_guild(conn, guild);
+        del_count = del_count + 1;
+    }
+
+    println!("Added {} servers.", add_count);
+    println!("Deleted {} servers.", del_count);
+}
+
 #[async_trait]
 impl EventHandler for Handler {
     // when the client is ready
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} ready", ready.user.name);
+        println!("Updating guilds table...");
+        guild_check(&ctx).await;
     }
     // when the bot joins a server
     async fn guild_create(&self, _ctx: Context, _guild: Guild, _is_new: bool) {

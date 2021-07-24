@@ -92,6 +92,17 @@ pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
     }
 }
 
+pub fn get_all_guilds(conn: &Mutex<Connection>) -> Result<Vec<String>> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("SELECT guild_id FROM guilds").unwrap();
+    let rows = query.query_map([], |row| row.get(0))?;
+    let mut guild_ids = Vec::new();
+    for guild_id in rows {
+        guild_ids.push(guild_id?);
+    }
+    Ok(guild_ids)
+}
+
 // Adds a channel with no settings to the channels table
 pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
