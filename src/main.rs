@@ -94,17 +94,13 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
             for member in gchannel.members(&ctx).await.unwrap() {
-                match presences.get(&member.user.id) {
-                    Some(presence) => {
-                        for activity in &presence.activities {
-                            if activity.kind == ActivityType::Playing {
-                                println!("{} is playing {:?}", member.user.name, activity.name);
-                                // Increase the count for this game
-                                *games.entry(activity.name.clone()).or_default() += 1;
-                            }
-                        }
-                    },
-                    None => {},
+                let presence = presences.get(&member.user.id).unwrap();
+                for activity in &presence.activities {
+                    if activity.kind == ActivityType::Playing {
+                        println!("{} is playing {:?}", member.user.name, activity.name);
+                        // Increase the count for this game
+                        *games.entry(activity.name.clone()).or_default() += 1;
+                    }
                 }
             }
         },
