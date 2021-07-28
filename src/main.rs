@@ -251,12 +251,11 @@ impl EventHandler for Handler {
     async fn presence_update(&self, ctx: Context, new_data: PresenceUpdateEvent) {
         match new_data.guild_id {
             Some(guild_id) => {
-                println!("{}", guild_id);
                 match get_vc_id(&ctx, new_data.presence.user_id, guild_id).await {
                     Some((vc_id, _vc_name, _cat_id)) => {
                         change_channel(&ctx, vc_id).await;
                     },
-                    None => { println!("Could not resolve channel")},
+                    None => { },
                 }
             },
             None => println!("No guild"),
