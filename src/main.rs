@@ -94,13 +94,17 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
             for member in gchannel.members(&ctx).await.unwrap() {
-                let presence = presences.get(&member.user.id).unwrap();
-                for activity in &presence.activities {
-                    if activity.kind == ActivityType::Playing {
-                        println!("{} is playing {:?}", member.user.name, activity.name);
-                        // Increase the count for this game
-                        *games.entry(activity.name.clone()).or_default() += 1;
-                    }
+                match presences.get(&member.user.id) {
+                    Some(presence) => {
+                        for activity in &presence.activities {
+                            if activity.kind == ActivityType::Playing {
+                                println!("{} is playing {:?}", member.user.name, activity.name);
+                                // Increase the count for this game
+                                *games.entry(activity.name.clone()).or_default() += 1;
+                            }
+                        }
+                    },
+                    None => {},
                 }
             }
         },
@@ -127,7 +131,15 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         return;
     }
 
+    match ctx.cache.guild_channel(854918809901858819).await {
+        Some(channel) => {
+            channel.say(&ctx.http, format!("Changing channel {} -> {}", curr_name, new_name)).await.unwrap();
+        },
+        None => {},
+    };
+
     println!("Changing channel {} -> {}", curr_name, new_name);
+
 
     if let Err(why) = channel_id.edit(&ctx.http, |c| c.name(new_name)).await {
         println!("Error: {}", why);
