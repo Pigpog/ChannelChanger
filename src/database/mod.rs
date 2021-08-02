@@ -193,3 +193,26 @@ pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: Str
     }
 }
 
+pub fn get_category(conn: &Mutex<Connection>, category_id: String) -> Result<Option<String>> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("SELECT template FROM categories WHERE category_id = ?")?;
+    return query.query_row([category_id], |row| {
+        Ok(row.get(0)?)
+    });
+}
+
+
+pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, template: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("UPDATE categories SET template = ? WHERE channel_id = ?").unwrap();
+    match query.execute([template, category_id]) {
+        Ok(_) => {
+            return Ok(())
+        },
+        Err(e) => {
+            return Err(Error::new(ErrorKind::Other, e));
+        },
+    }
+}
+
+

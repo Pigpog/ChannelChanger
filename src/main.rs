@@ -66,7 +66,7 @@ struct Handler;
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     let data = ctx.data.read().await;
     let conn = data.get::<Database>().unwrap();
-    let template;
+    let mut template;
     let old_name;
     let new_name: String;
     // Current name of the voice channel
@@ -77,9 +77,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
         Ok((name, templ)) => {
             println!("Original name: {}", name);
             old_name = name;
-            template = templ.unwrap_or(String::from("X - Y"));
-            println!("Template: {}", template);
-
+            template = templ;
         },
         Err(e) => {
             println!("Error: {}", e);
@@ -90,6 +88,19 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
+            if template.is_none() {
+                match gchannel.category_id {
+                    Some(cat_id) => {
+                        match database::get_category(conn, cat_id.to_string()) {
+                            Ok(cat_templ) => {
+                                template = cat_templ;
+                            },
+                            Err(_) => {},
+                        }
+                    },
+                    None => {},
+                }
+            }
             curr_name = gchannel.name.clone();
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
@@ -118,7 +129,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             // Set channel name to game
             println!("Majority: {}", major);
             // TODO find a better way to do this
-            new_name = template.replacen("X", &old_name, 1).replacen("Y", &major, 1);
+            new_name = template.unwrap_or(String::from("X - Y")).replacen("X", &old_name, 1).replacen("Y", &major, 1);
         }, 
         None => {
             // Reset channel name
@@ -443,11 +454,11 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
 
     if args.len() < 3 {
         msg.reply(ctx, "You must specify a subcommand and a template").await?;
-        return Err(CommandError::from("No subcommand specified"));
+        return Err(CommandError::from("You must specify `channel` or `category` and a template. Example: `!template channel X - Y`"));
     };
 
     match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
-        Some((vc_id, _vc_name, _cat_id)) => {
+        Some((vc_id, _vc_name, cat_id)) => {
             let data = ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
             match args[1] {
@@ -461,8 +472,23 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
                         }
                     }
                 },
+                "category" => {
+                    match cat_id {
+                        Some(category_id) => {
+                            match database::set_category_template(conn, category_id.to_string(), String::from(args[2])) {
+                                Ok(()) => {
+                                    msg.reply(ctx, format!("Set category template to `{}`", args[2])).await?;
+                                },
+                                Err(e) => {
+                                    msg.reply(ctx, format!("An error occurred: {}", e)).await?;
+                                }
+                            }
+                        },
+                        None=>{ msg.reply(ctx, "Channel is not in a category").await?; },
+                    }
+                },
                 &_ => {
-                    msg.reply(ctx, "Invalid subcommand. Valid subcommands are: `channel`, `category`").await?;
+                    msg.reply(ctx, "You must specify `channel` or `category` and a template. Example: `!template channel X - Y`").await?;
                 }
             }
         },
