@@ -204,7 +204,7 @@ pub fn get_category(conn: &Mutex<Connection>, category_id: String) -> Result<Opt
 
 pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, template: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
-    let mut query = connection.prepare_cached("UPDATE categories SET template = ? WHERE channel_id = ?").unwrap();
+    let mut query = connection.prepare_cached("UPDATE categories SET template = ? WHERE category_id = ?").unwrap();
     match query.execute([template, category_id]) {
         Ok(_) => {
             return Ok(())
