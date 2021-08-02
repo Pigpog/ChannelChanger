@@ -483,13 +483,10 @@ async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "__Commands__\n\
-              **!enable** - Enables ChannelChanger for your current voice channel/category\n\
-              **!disable** - Disables ChannelChanger for your current voice channel/category\n\
-              **!template** - Sets the pattern to use for channel names. Default: `X - Y`\n\
+              **!enable** [channel/category] - Enables ChannelChanger for your current voice channel/category\n\
+              **!disable** [channel/category] - Disables ChannelChanger for your current voice channel/category\n\
+              **!template** [channel/category] - Sets the pattern to use for channel names. Default: `X - Y`\n\
               **!invite** - Get the invite link for this bot\n\
-              __Subcommands__\n\
-              **channel** - Apply changes to your current voice channel\n\
-              **category** - Apply changes to your current voice channel's category\
     ").await?;
     Ok(())
 }
