@@ -1,5 +1,5 @@
 # ChannelChanger - Rust Branch
-In this branch, I will rewrite the bot in Rust. Note that this is my first time using Rust. You've been warned.
+The future of ChannelChanger. Note that this is my first time using Rust. You've been warned.
 
 Discord bot that automatically updates voice channel names based on what games people are playing in it.
 
@@ -15,7 +15,7 @@ Discord bot that automatically updates voice channel names based on what games p
 `!disable {channel, category}` Disables the bot for your connected voice channel or its category.
 
 `!template {channel, category} TEMPLATE` Sets the template for your connected voice channel or its category.
-Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
+Default: `X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
 
 ## Usage
 (Note: You and the bot need Manage Channels permission)
@@ -46,14 +46,6 @@ cargo build --release
 
 Discord bots use login tokens.
 You must create an application and bot user on the [Discord Applications page](https://discord.com/developers/applications).
-
-### on GNU/Linux
-
-Initialize the sqlite database:
-
-```
-sqlite -init sqlinit.txt channels.db
-```
 
 Once you have compiled the bot, you can run it using the following command:
 
