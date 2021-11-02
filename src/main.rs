@@ -63,11 +63,11 @@ struct General;
 
 struct Handler;
 
-async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: serenity::model::channel::GuildChannel) -> Option<(String, String, bool)> {
+async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: serenity::model::channel::GuildChannel) -> (Option<String>, Option<String>, bool) {
     let data = ctx.data.read().await;
     let conn = data.get::<Database>().unwrap();
-    let name;
-    let mut template = "X - Y".to_string();
+    let mut name: Option<String> = None;
+    let mut template: Option<String> = None;
     let mut should_add_tmp: bool = false;
 
     match gchannel.category_id {
@@ -75,12 +75,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
             match database::get_category(conn, cat_id.to_string()) {
                 Ok(cat_templ) => {
                     should_add_tmp = true;
-                    match cat_templ {
-                        Some(val) => {
-                            template = val.to_string();
-                        },
-                        None => {},
-                    }
+                    template = cat_templ;
                 },
                 Err(_) => {},
             }
@@ -89,30 +84,24 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
     }
     match database::get_channel(conn, channel_id.to_string()) {
         Ok((db_name, templ)) => {
-            name = db_name;
-            match templ {
-                Some(val) =>{
-                    template = val;
-                },
-                None => {},
-            }
+            name = Some(db_name);
+            template = templ;
         },
         Err(e) => {
             println!("Error: {}", e);
             match database::get_tmp_channel(conn, channel_id.to_string()) {
                 Ok(db_name) => {
                     should_add_tmp = false;
-                    name = db_name;
+                    name = Some(db_name);
                 },
                 Err(_) => {
                     println!("Error: No old name to work with");
-                    return None;
                 },
             }
         },
     };
-    println!("Original name: {}", name);
-    return Some((name, template, should_add_tmp));
+    //println!("Original name: {}", name);
+    return (name, template, should_add_tmp);
 }
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
@@ -129,6 +118,11 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
+            let properties = channel_properties(ctx, channel_id, gchannel.clone()).await;
+            old_name = properties.0.unwrap_or(gchannel.name.clone());
+            template = properties.1.unwrap_or("X - Y".to_string());
+            add_tmp = properties.2;
+/*
             match channel_properties(ctx, channel_id, gchannel.clone()).await {
                 Some ((name, templ, should_add)) => {
                     old_name = name;
@@ -143,6 +137,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
                     add_tmp = true;
                 }
             };
+            */
             curr_name = gchannel.name.clone();
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
