@@ -53,6 +53,7 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
             guild_id TEXT,
             name TEXT NOT NULL,
             template TEXT,
+            majority INTEGER,
             PRIMARY KEY (channel_id),
                 FOREIGN KEY (guild_id)
                     REFERENCES guilds (guild_id)
@@ -69,6 +70,13 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
                 REFERENCES guilds (guild_id)
                     ON DELETE CASCADE
                     ON UPDATE NO ACTION
+        );", [])?;
+
+    // Temporarily store names of channels in added categories
+    conn.execute("
+        CREATE TABLE IF NOT EXISTS tmp_channels (
+            channel_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL
         );", [])?;
 
     Ok(Mutex::new(conn))
@@ -106,7 +114,7 @@ pub fn get_all_guilds(conn: &Mutex<Connection>) -> Result<Vec<String>> {
 // Adds a channel with no settings to the channels table
 pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
-    let mut query = connection.prepare_cached("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)").unwrap();
+    let mut query = connection.prepare_cached("INSERT INTO channels VALUES(?1, ?2, ?3, NULL, NULL)").unwrap();
     //match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
     match query.execute([channel_id, guild_id, name]) {
         Ok(_) => {
@@ -215,4 +223,44 @@ pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, temp
     }
 }
 
+// Gets a tmp_channel's name. For channels in added categories.
+pub fn get_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<String> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("SELECT name FROM tmp_channels WHERE channel_id = ?")?;
+    return query.query_row([channel_id], |row| {
+        Ok(row.get(0)?)
+    });
+}
 
+// Adds a tmp_channel
+pub fn add_tmp_channel(conn: &Mutex<Connection>, channel_id: String, name: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("INSERT INTO tmp_channels VALUES(?1, ?2)").unwrap();
+    //match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
+    match query.execute([channel_id, name]) {
+        Ok(_) => {
+            println!("Successfully added tmp_channel");
+            Ok(())
+        },
+        Err(e) => {
+            if e.to_string() == "UNIQUE constraint failed: tmp_channels.channel_id" {
+                return Err(Error::new(ErrorKind::Other, "Channel already added"));
+            }
+            eprintln!("add_tmp_channel: Error: {}", e);
+            return Err(Error::new(ErrorKind::Other, "An unknown error occurred"));
+        },
+    }
+}
+
+pub fn del_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("DELETE FROM tmp_channels WHERE channel_id = ?").unwrap();
+    match query.execute([channel_id]) {
+        Ok(_) => {
+            return Ok(())
+        },
+        Err(e) => {
+            return Err(Error::new(ErrorKind::Other, e));
+        },
+    }
+}

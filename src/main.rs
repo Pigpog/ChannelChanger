@@ -63,44 +63,86 @@ struct General;
 
 struct Handler;
 
-async fn change_channel(ctx: &Context, channel_id: ChannelId) {
+async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: serenity::model::channel::GuildChannel) -> Option<(String, String, bool)> {
     let data = ctx.data.read().await;
     let conn = data.get::<Database>().unwrap();
-    let mut template;
-    let old_name;
-    let new_name: String;
-    // Current name of the voice channel
-    let mut curr_name: String = String::new();
-    let mut games: HashMap<String, usize> = HashMap::new();
+    let name;
+    let mut template = "X - Y".to_string();
+    let mut should_add_tmp: bool = false;
 
+    match gchannel.category_id {
+        Some(cat_id) => {
+            match database::get_category(conn, cat_id.to_string()) {
+                Ok(cat_templ) => {
+                    should_add_tmp = true;
+                    match cat_templ {
+                        Some(val) => {
+                            template = val.to_string();
+                        },
+                        None => {},
+                    }
+                },
+                Err(_) => {},
+            }
+        },
+        None => {},
+    }
     match database::get_channel(conn, channel_id.to_string()) {
-        Ok((name, templ)) => {
-            println!("Original name: {}", name);
-            old_name = name;
-            template = templ;
+        Ok((db_name, templ)) => {
+            name = db_name;
+            match templ {
+                Some(val) =>{
+                    template = val;
+                },
+                None => {},
+            }
         },
         Err(e) => {
             println!("Error: {}", e);
-            return;
+            match database::get_tmp_channel(conn, channel_id.to_string()) {
+                Ok(db_name) => {
+                    should_add_tmp = false;
+                    name = db_name;
+                },
+                Err(_) => {
+                    println!("Error: No old name to work with");
+                    return None;
+                },
+            }
         },
     };
+    println!("Original name: {}", name);
+    return Some((name, template, should_add_tmp));
+}
 
+async fn change_channel(ctx: &Context, channel_id: ChannelId) {
+    let data = ctx.data.read().await;
+    let conn = data.get::<Database>().unwrap();
+    let template;
+    let old_name;
+    let new_name: String;
+    let add_tmp: bool;
+    // Current name of the voice channel
+    let curr_name;
+    let mut games: HashMap<String, usize> = HashMap::new();
+    
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
-            if template.is_none() {
-                match gchannel.category_id {
-                    Some(cat_id) => {
-                        match database::get_category(conn, cat_id.to_string()) {
-                            Ok(cat_templ) => {
-                                template = cat_templ;
-                            },
-                            Err(_) => {},
-                        }
-                    },
-                    None => {},
+            match channel_properties(ctx, channel_id, gchannel.clone()).await {
+                Some ((name, templ, should_add)) => {
+                    old_name = name;
+                    template = templ;
+                    //template = templ.unwrap_or("X - Y".to_string());
+                    add_tmp = should_add;
+                },
+                None => {
+                    println!("Couldnt get any usable data");
+                    old_name = gchannel.name.clone();
+                    template = "X - Y".to_string();
+                    add_tmp = true;
                 }
-            }
+            };
             curr_name = gchannel.name.clone();
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
@@ -119,7 +161,9 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
                 }
             }
         },
-        None => {},
+        None => {
+            return;
+        },
     }
 
     println!("Vector contents: {:?}", &games);
@@ -129,7 +173,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             // Set channel name to game
             println!("Majority: {}", major);
             // TODO find a better way to do this
-            new_name = template.unwrap_or(String::from("X - Y")).replacen("X", &old_name, 1).replacen("Y", &major, 1);
+            new_name = template.replacen("X", &old_name, 1).replacen("Y", &major, 1);
         }, 
         None => {
             // Reset channel name
@@ -140,6 +184,25 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // We don't need to change the name
     if new_name == curr_name {
         return;
+    }
+
+    if new_name == old_name {
+        // Delete temporary channel row
+        match database::del_tmp_channel(conn, channel_id.to_string()) {
+            Ok(_) => {
+                println!("Removed tmp entry");
+            },
+            Err(e) => {println!("Failed to remove tmp entry: {}", e)}
+        };
+    }
+
+    if add_tmp { 
+        match database::add_tmp_channel(conn, channel_id.to_string(), curr_name.clone()) {
+            Ok(_) => {
+                println!("Added tmp entry");
+            },
+            Err(_) =>{},
+        }
     }
 
     match ctx.cache.guild_channel(854918809901858819).await {
