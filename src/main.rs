@@ -65,7 +65,7 @@ struct Handler;
 
 // Returns the usual name and template to use when changing a channels name, if available.
 // Also returns a boolean that's true if the usual name is not found in db and should be added to tmp_channels.
-async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: serenity::model::channel::GuildChannel) -> (Option<String>, Option<String>, bool) {
+async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: serenity::model::channel::GuildChannel) -> (Option<String>, Option<String>, bool, bool) {
     let data = ctx.data.read().await;
     let conn = data.get::<Database>().unwrap();
     // The usual name of the channel
@@ -73,6 +73,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
     // Template, either from the channel or its category
     let mut template: Option<String> = None;
     let mut should_add_tmp: bool = false;
+    let mut should_change: bool = false;
 
     // Check if the channel is in a category
     match gchannel.category_id {
@@ -80,6 +81,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
             // Get the template of the category
             match database::get_category(conn, cat_id.to_string()) {
                 Ok(cat_templ) => {
+                    should_change = true;
                     should_add_tmp = true;
                     template = cat_templ;
                 },
@@ -91,6 +93,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
     // Check if the channel itself is "enabled"
     match database::get_channel(conn, channel_id.to_string()) {
         Ok((db_name, templ)) => {
+            should_change = true;
             name = Some(db_name);
             template = templ;
         },
@@ -99,6 +102,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
             // Check if the channel is in the tmp_channels db
             match database::get_tmp_channel(conn, channel_id.to_string()) {
                 Ok(db_name) => {
+                    should_change = true;
                     should_add_tmp = false;
                     name = Some(db_name);
                 },
@@ -108,7 +112,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
             }
         },
     };
-    return (name, template, should_add_tmp);
+    return (name, template, should_add_tmp, should_change);
 }
 
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
@@ -128,6 +132,12 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             let properties = channel_properties(ctx, channel_id, gchannel.clone()).await;
             // If no usual name is found, default to the current name
             old_name = properties.0.unwrap_or(gchannel.name.clone());
+
+            // If should_change is false, ignore
+            if !properties.3 {
+                return;
+            }
+
             // If no template is found, default.
             template = properties.1.unwrap_or("X - Y".to_string());
             add_tmp = properties.2;
@@ -197,7 +207,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     }
 
     // Debug logging, replace channel ID
-    match ctx.cache.guild_channel(854918809901858819).await {
+    match ctx.cache.guild_channel(905893001824464906).await {
         Some(channel) => {
             channel.say(&ctx.http, format!("Changing channel {} -> {}", curr_name, new_name)).await.unwrap();
         },
