@@ -144,8 +144,12 @@ pub fn set_channel_template(conn: &Mutex<Connection>, channel_id: String, templa
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("UPDATE channels SET template = ? WHERE channel_id = ?").unwrap();
     match query.execute([template, channel_id]) {
-        Ok(_) => {
-            return Ok(())
+        Ok(count) => {
+            if count > 0 {
+                return Ok(())
+            } else {
+                return Err(Error::new(ErrorKind::Other, "Channel not enabled. Do `!enable channel` first."));
+            }
         },
         Err(e) => {
             return Err(Error::new(ErrorKind::Other, e));
@@ -214,8 +218,12 @@ pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, temp
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("UPDATE categories SET template = ? WHERE category_id = ?").unwrap();
     match query.execute([template, category_id]) {
-        Ok(_) => {
-            return Ok(())
+        Ok(count) => {
+            if count > 0 {
+                return Ok(())
+            } else {
+                return Err(Error::new(ErrorKind::Other, "Category not enabled. Do `!enable category` first."));
+            }
         },
         Err(e) => {
             return Err(Error::new(ErrorKind::Other, e));
