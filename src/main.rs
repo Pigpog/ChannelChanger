@@ -57,7 +57,7 @@ mod database;
 use database::Database;
 
 #[group]
-#[commands(enable, disable, template, invite, help)]
+#[commands(enable, disable, template, info, invite, help)]
 
 struct General;
 
@@ -122,6 +122,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     let old_name;
     let new_name: String;
     let add_tmp: bool;
+    let guild_id;
     // Current name of the voice channel
     let curr_name;
     let mut games: HashMap<String, usize> = HashMap::new();
@@ -129,9 +130,11 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Get the GuildChannel of channel_id
     match channel_id.to_channel(&ctx.http).await.unwrap().guild() {
         Some (gchannel) => {
+            guild_id = gchannel.guild_id;
             let properties = channel_properties(ctx, channel_id, gchannel.clone()).await;
             // If no usual name is found, default to the current name
             old_name = properties.0.unwrap_or(gchannel.name.clone());
+
 
             // If should_change is false, ignore
             if !properties.3 {
@@ -198,7 +201,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Channel is in an enabled category and not enabled itself.
     if add_tmp { 
         // Store its current name in tmp_channels
-        match database::add_tmp_channel(conn, channel_id.to_string(), curr_name.clone()) {
+        match database::add_tmp_channel(conn, channel_id.to_string(), guild_id.to_string(), curr_name.clone()) {
             Ok(_) => {
                 println!("Added tmp entry");
             },
@@ -561,6 +564,34 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
         },
     }
 
+    Ok(())
+}
+
+#[command]
+async fn info(ctx: &Context, msg: &Message) -> CommandResult {
+    match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
+        Some((vc_id, vc_name, _cat_id)) => {
+            match vc_id.to_channel(&ctx.http).await.unwrap().guild() {
+                Some (gchannel) => {
+                    let usual_name;
+                    let template;
+                    let properties = channel_properties(ctx, vc_id, gchannel.clone()).await;
+
+                    // If no usual name is found, default to the current name
+                    usual_name = properties.0.unwrap_or(gchannel.name.clone());
+                    // If no template is found, default.
+                    template = properties.1.unwrap_or("X - Y".to_string());
+                    
+                    msg.reply(ctx, format!("Voice Channel ID: {}\nVoice Channel Name: {}\nUsual name: {}\nWill change: {}\nTemplate: `{}`",
+                        vc_id, vc_name, usual_name, properties.3, template)).await?;
+                },
+                None => {},
+            };
+        },
+        None=> {
+            msg.reply(ctx, "You must be in a voice channel to use this command.").await?;
+        },
+    };
     Ok(())
 }
 

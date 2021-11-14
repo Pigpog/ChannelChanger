@@ -76,7 +76,12 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
     conn.execute("
         CREATE TABLE IF NOT EXISTS tmp_channels (
             channel_id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
+            guild_id TEXT,
+            name TEXT NOT NULL,
+            FOREIGN KEY (guild_id)
+                REFERENCES guilds (guild_id)
+                    ON DELETE CASCADE
+                    ON UPDATE NO ACTION
         );", [])?;
 
     Ok(Mutex::new(conn))
@@ -241,13 +246,11 @@ pub fn get_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<S
 }
 
 // Adds a tmp_channel
-pub fn add_tmp_channel(conn: &Mutex<Connection>, channel_id: String, name: String) -> Result<(), Error> {
+pub fn add_tmp_channel(conn: &Mutex<Connection>, channel_id: String, guild_id: String, name: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
-    let mut query = connection.prepare_cached("INSERT INTO tmp_channels VALUES(?1, ?2)").unwrap();
-    //match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
-    match query.execute([channel_id, name]) {
+    let mut query = connection.prepare_cached("INSERT INTO tmp_channels VALUES(?1, ?2, ?3)").unwrap();
+    match query.execute([channel_id, guild_id, name]) {
         Ok(_) => {
-            println!("Successfully added tmp_channel");
             Ok(())
         },
         Err(e) => {
