@@ -194,7 +194,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             Ok(_) => {
                 println!("Removed tmp entry");
             },
-            Err(e) => {println!("Failed to remove tmp entry: {}", e)}
+            Err(e) => { println!("Failed to remove tmp entry: {}", e) }
         };
     }
 
@@ -389,7 +389,7 @@ async fn main() {
         Err(_) => panic!("Failed to initialize database."),
     }
 
-// start listening for events by starting a single shard
+    // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -398,11 +398,6 @@ async fn main() {
 #[command]
 #[required_permissions(MANAGE_CHANNELS)]
 async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
-    // ignore messages from bots
-    if msg.author.bot { return Ok(()) };
-    // ignore DMs
-    if msg.guild_id.is_none() { return Ok(()); };
-
     let guild_id = msg.guild_id.unwrap();
     let args = msg.content.splitn(2, " ").collect::<Vec<_>>();
 
@@ -608,6 +603,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
               **!disable** [channel/category] - Disables ChannelChanger for your current voice channel/category\n\
               **!template** [channel/category] - Sets the pattern to use for channel names. Default: `X - Y`\n\
               **!invite** - Get the invite link for this bot\n\
+              **!info** - Output debug info about your channel\n\
     ").await?;
     Ok(())
 }
