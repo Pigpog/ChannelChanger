@@ -62,7 +62,7 @@ mod database;
 use database::Database;
 
 #[group]
-#[commands(enable, disable, template, info, invite, help)]
+#[commands(enable, disable, template, info, invite, help, role)]
 
 struct General;
 
@@ -628,3 +628,82 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+#[command]
+#[required_permissions(MANAGE_ROLES)]
+async fn role(ctx: &Context, msg: &Message) -> CommandResult {
+    let args = msg.content.splitn(2, " ").collect::<Vec<_>>();
+
+    if args.len() < 2 {
+        msg.reply(ctx, "You must specify whether to add or remove the role").await?;
+        return Err(CommandError::from("You must specify whether to add or remove the role"));
+    };
+
+    let guild = msg.guild(&ctx).await.unwrap();
+    match guild.presences.get(&msg.author.id) {
+        Some(presence) => {
+            let data = ctx.data.read().await;
+            let conn = data.get::<Database>().unwrap();
+            let mut game = "foobar".to_string();
+            let mut found_game = false;
+
+            for activity in &presence.activities {
+                if activity.kind == ActivityType::Playing {
+                    game = activity.name.clone();
+                    found_game = true;
+                    break;
+                } else {
+                    game = "foobar".to_string();
+                }
+            }
+            if !found_game {
+                msg.reply(ctx, format!("You must be playing a game to use this command")).await?;
+                return Err(CommandError::from("No game status"));
+            }
+                            
+            match args[1] {
+                "add" => {
+                    match guild.create_role(&ctx.http, |r| r.hoist(false).name(&game)).await {
+                        Ok(role) => {
+                            match database::add_role(conn, role.id.to_string(), guild.id.to_string(), game.clone()) {
+                                Ok(()) => {
+                                    msg.reply(ctx, format!("Added role {}", &game)).await?;
+                                },
+                                Err(e) => {
+                                    msg.reply(ctx, format!("An error occurred: {}", e)).await?;
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            msg.reply(ctx, format!("An error occurred while creating the role: {}", e)).await?;
+                        }
+                    }
+                },
+                "remove" => {
+                    match database::get_role(conn, guild.id.to_string(), game.clone()) {
+                        Ok(role_id) => {
+                            match database::del_role(conn, role_id.to_string()) {
+                                Ok(()) => {
+                                    msg.reply(ctx, format!("Removed role {}", &game)).await?;
+                                }, 
+                                Err(e) => {
+                                    msg.reply(ctx, format!("An error occurred: {}", e)).await?;
+                                }
+                            }
+                        },
+                        Err(_) => {
+                            msg.reply(ctx, "Could not find a role for that game.").await?;
+                        }
+                    }
+                },
+                &_ => {
+                    msg.reply(ctx, "You must specify whether to add or remove the role").await?;
+                }
+            }
+        },
+        None => {
+            msg.reply(ctx, "You must be playing a game to use this command").await?;
+        },
+    }
+
+    Ok(())
+}

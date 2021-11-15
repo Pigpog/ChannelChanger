@@ -83,6 +83,16 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
                     ON DELETE CASCADE
                     ON UPDATE NO ACTION
         );", [])?;
+    conn.execute("
+        CREATE TABLE IF NOT EXISTS roles (
+            role_id TEXT PRIMARY KEY,
+            guild_id TEXT,
+            game TEXT NOT NULL,
+            FOREIGN KEY (guild_id)
+                REFERENCES guilds (guild_id)
+                    ON UPDATE CASCADE
+                    ON UPDATE NO ACTION
+        );", [])?;
 
     Ok(Mutex::new(conn))
 }
@@ -275,3 +285,43 @@ pub fn del_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(
         },
     }
 }
+
+pub fn add_role (conn: &Mutex<Connection>, role_id: String, guild_id: String, game: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("INSERT INTO roles VALUES(?1, ?2, ?3)").unwrap();
+    match query.execute([role_id, guild_id, game]) {
+        Ok(_) => {
+            Ok(())
+        },
+        Err(e) => {
+            if e.to_string() == "UNIQUE constraint failed: roles.role_id" {
+                return Err(Error::new(ErrorKind::Other, "Role already added"));
+            }
+            eprintln!("add_role: Error: {}", e);
+            return Err(Error::new(ErrorKind::Other, "An unknown error occurred"));
+        },
+    }
+}
+
+pub fn get_role(conn: &Mutex<Connection>, guild_id: String, game: String) -> Result<String> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("SELECT role_id FROM roles WHERE guild_id = ? AND game = ?")?;
+    return query.query_row([guild_id, game], |row| {
+        Ok(row.get(0)?)
+    });
+}
+
+pub fn del_role(conn: &Mutex<Connection>, role_id: String) -> Result<(), Error> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("DELETE FROM roles WHERE role_id = ?").unwrap();
+    match query.execute([role_id]) {
+        Ok(_) => {
+            return Ok(())
+        },
+        Err(e) => {
+            return Err(Error::new(ErrorKind::Other, e));
+        },
+    }
+}
+
+
