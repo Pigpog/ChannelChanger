@@ -19,14 +19,17 @@
 use serenity::{
     async_trait,
     model::{
-        channel::Message,
+        channel::{
+            Message,
+            GuildChannel
+        },
         gateway::Ready,
         prelude::{
             GuildId,
             ChannelId,
             UserId,
             ActivityType,
-            PresenceUpdateEvent
+            PresenceUpdateEvent,
         },
         voice::VoiceState,
         guild::{Guild, GuildUnavailable},
@@ -48,6 +51,8 @@ use serenity::{
     },
 };
 
+use serenity::prelude::TypeMapKey;
+
 use std::{
     collections::HashMap,
     env,
@@ -63,6 +68,12 @@ struct General;
 
 struct Handler;
 
+struct DebugChannel;
+
+impl TypeMapKey for DebugChannel {
+    type Value = GuildChannel;
+}
+ 
 // Returns the usual name and template to use when changing a channels name, if available.
 // Also returns a boolean that's true if the usual name is not found in db and should be added to tmp_channels.
 async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: serenity::model::channel::GuildChannel) -> (Option<String>, Option<String>, bool, bool) {
@@ -118,6 +129,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
 async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     let data = ctx.data.read().await;
     let conn = data.get::<Database>().unwrap();
+    let debug_channel = data.get::<DebugChannel>();
     let template;
     let old_name;
     let new_name: String;
@@ -210,12 +222,9 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     }
 
     // Debug logging, replace channel ID
-    match ctx.cache.guild_channel(905893001824464906).await {
-        Some(channel) => {
-            channel.say(&ctx.http, format!("Changing channel {} -> {}", curr_name, new_name)).await.unwrap();
-        },
-        None => {},
-    };
+    if debug_channel.is_some() {
+        debug_channel.unwrap().say(&ctx.http, format!("Changing channel {} -> {}", curr_name, new_name)).await.unwrap();
+    }
 
     println!("Changing channel {} -> {}", curr_name, new_name);
 
@@ -290,6 +299,17 @@ impl EventHandler for Handler {
     // when the client is ready
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} ready", ready.user.name);
+        // Enclose in braces to ensure that the write
+        // closes before we pass ctx elsewhere.
+        {
+            let mut data = ctx.data.write().await;
+            match env::var("DEBUG_CHANNEL") {
+                Ok(debug_channel) => {
+                    data.insert::<DebugChannel>(ctx.cache.guild_channel(debug_channel.parse::<u64>().unwrap()).await.unwrap());
+                },
+                Err(_) => {},
+            }
+        }
         println!("Updating guilds table...");
         guild_check(&ctx).await;
     }

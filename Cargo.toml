@@ -1,6 +1,6 @@
 [package]
 name = "channel_changer"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Pigpog <7060603@hotmail.ca>"]
 license = "GPLv3"
 readme = "README.MD"
@@ -17,6 +17,6 @@ version = "1.7.0"
 features = ["macros", "rt-multi-thread"]
 
 [dependencies.serenity]
-version = "0.10.8"
+version = "0.10.9"
 features = ["cache", "framework"]
 
