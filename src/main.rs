@@ -367,6 +367,46 @@ impl EventHandler for Handler {
                     },
                     None => { },
                 }
+                // Give/take roles
+                let mut game = "foobar".to_string();
+                let mut found_game = false;
+
+                for activity in &new_data.presence.activities {
+                    if activity.kind == ActivityType::Playing {
+                        game = activity.name.clone();
+                        found_game = true;
+                        break;
+                    } else {
+                        game = "foobar".to_string();
+                    }
+                }
+                if found_game {
+                    let data = ctx.data.read().await;
+                    let conn = data.get::<Database>().unwrap();
+                    match database::get_role(conn, *guild_id.as_u64(), game) {
+                        Ok(role_id) => {
+                            match guild_id.member(&ctx.http, new_data.presence.user_id).await {
+                                Ok(mut member) => {
+                                    println!("Giving user role {}", role_id);
+                                    match member.add_role(&ctx.http, role_id).await {
+                                        Ok(_) => {},
+                                        Err(_) => {},
+                                    };
+                                },
+                                Err(_) => {
+                                    println!("Could not get member");
+                                }
+                            }
+                        },
+                        Err(_) => {
+                            println!("No role for game");
+                        }
+                    }
+                } else {
+                    println!("Not playing a game");
+                }
+
+
             },
             None => println!("No guild"),
         }
