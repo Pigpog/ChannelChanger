@@ -94,6 +94,7 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
                     ON UPDATE NO ACTION
         );", [])?;
 
+
     Ok(Mutex::new(conn))
 }
 
@@ -228,7 +229,6 @@ pub fn get_category(conn: &Mutex<Connection>, category_id: String) -> Result<Opt
     });
 }
 
-
 pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, template: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("UPDATE categories SET template = ? WHERE category_id = ?").unwrap();
@@ -307,6 +307,14 @@ pub fn get_role(conn: &Mutex<Connection>, guild_id: String, game: String) -> Res
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT role_id FROM roles WHERE guild_id = ? AND game = ?")?;
     return query.query_row([guild_id, game], |row| {
+        Ok(row.get(0)?)
+    });
+}
+
+pub fn get_role_by_ids(conn: &Mutex<Connection>, guild_id: String, role_ids: String) -> Result<String> {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("SELECT role_id FROM roles WHERE role_id in ?")?;
+    return query.query_row([guild_id, role_ids], |row| {
         Ok(row.get(0)?)
     });
 }
