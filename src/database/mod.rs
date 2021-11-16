@@ -100,8 +100,9 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
 
 // Adds a guild with no settings to the guilds table
 pub fn add_guild(conn: &Mutex<Connection>, guild_id: u64) {
-    let success = conn.clone().lock().unwrap().execute("INSERT INTO guilds VALUES(?1)", [guild_id]);
-    match success {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("INSERT INTO guilds VALUES(?)").unwrap();
+    match query.execute([guild_id]) {
         Ok(_) => println!("Successfully added server"),
         Err(e) => eprintln!("add_guild: Error: {}", e),
     }
@@ -109,8 +110,9 @@ pub fn add_guild(conn: &Mutex<Connection>, guild_id: u64) {
 
 // Deletes a guild from the guilds table
 pub fn del_guild(conn: &Mutex<Connection>, guild_id: u64) {
-    let success = conn.clone().lock().unwrap().execute("DELETE FROM guilds WHERE guild_id = ?1", [guild_id]);
-    match success {
+    let connection = conn.clone().lock().unwrap();
+    let mut query = connection.prepare_cached("DELETE FROM guilds WHERE guild_id = ?").unwrap();
+    match query.execute([guild_id]) {
         Ok(_) => println!("Successfully deleted server"),
         Err(e) => eprintln!("add_guild: Error: {}", e),
     }
@@ -206,7 +208,8 @@ pub fn del_category(conn: &Mutex<Connection>, category_id: u64) -> Result<(), Er
 // Adds a category with no settings to the channels table
 pub fn add_category(conn: &Mutex<Connection>, guild_id: u64, category_id: u64) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
-    match connection.execute("INSERT INTO categories VALUES(?1, ?2, NULL)", [category_id, guild_id]) {
+    let mut query = connection.prepare_cached("INSERT INTO categories VALUES(?, ?, NULL)").unwrap();
+    match query.execute([category_id, guild_id]) {
         Ok(_) => {
             println!("Successfully added category");
             Ok(())
