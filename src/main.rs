@@ -90,7 +90,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
     match gchannel.category_id {
         Some(cat_id) => {
             // Get the template of the category
-            match database::get_category(conn, cat_id.to_string()) {
+            match database::get_category(conn, *cat_id.as_u64()) {
                 Ok(cat_templ) => {
                     should_change = true;
                     should_add_tmp = true;
@@ -102,7 +102,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
         None => {},
     }
     // Check if the channel itself is "enabled"
-    match database::get_channel(conn, channel_id.to_string()) {
+    match database::get_channel(conn, *channel_id.as_u64()) {
         Ok((db_name, templ)) => {
             should_change = true;
             name = Some(db_name);
@@ -111,7 +111,7 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
         Err(e) => {
             println!("Error: {}", e);
             // Check if the channel is in the tmp_channels db
-            match database::get_tmp_channel(conn, channel_id.to_string()) {
+            match database::get_tmp_channel(conn, *channel_id.as_u64()) {
                 Ok(db_name) => {
                     should_change = true;
                     should_add_tmp = false;
@@ -202,7 +202,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
 
     if new_name == old_name {
         // Delete temporary channel row
-        match database::del_tmp_channel(conn, channel_id.to_string()) {
+        match database::del_tmp_channel(conn, *channel_id.as_u64()) {
             Ok(_) => {
                 println!("Removed tmp entry");
             },
@@ -213,7 +213,7 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Channel is in an enabled category and not enabled itself.
     if add_tmp { 
         // Store its current name in tmp_channels
-        match database::add_tmp_channel(conn, channel_id.to_string(), guild_id.to_string(), curr_name.clone()) {
+        match database::add_tmp_channel(conn, *channel_id.as_u64(), *guild_id.as_u64(), curr_name.clone()) {
             Ok(_) => {
                 println!("Added tmp entry");
             },
@@ -266,7 +266,7 @@ async fn guild_check(ctx: &Context) {
 
         // search for the cli_guild in db_guilds
         for j in 0..db_guilds.len() {
-            if cli_guilds[i].to_string() == db_guilds[j] {
+            if *cli_guilds[i].as_u64() == db_guilds[j] {
                 position = j;
                 found = true;
                 break;
@@ -279,7 +279,7 @@ async fn guild_check(ctx: &Context) {
             db_guilds.remove(position);
         } else {
             // add this guild to the database
-            database::add_guild(conn, cli_guilds[i].to_string());
+            database::add_guild(conn, *cli_guilds[i].as_u64());
             add_count = add_count + 1;
         }
     }
@@ -314,18 +314,18 @@ impl EventHandler for Handler {
         guild_check(&ctx).await;
     }
     // when the bot joins a server
-    async fn guild_create(&self, _ctx: Context, _guild: Guild, _is_new: bool) {
-        if _is_new {
+    async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: bool) {
+        if is_new {
             let data = _ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
-             database::add_guild(conn, _guild.id.to_string());
+             database::add_guild(conn, *guild.id.as_u64());
         }
     }
     // when the bot leaves a server
-    async fn guild_delete(&self, _ctx: Context, _incomplete: GuildUnavailable, _full: Option<Guild>) {
-        let data = _ctx.data.read().await;
+    async fn guild_delete(&self, ctx: Context, incomplete: GuildUnavailable, _full: Option<Guild>) {
+        let data = ctx.data.read().await;
         let conn = data.get::<Database>().unwrap();
-        database::del_guild(conn, _incomplete.id.to_string());
+        database::del_guild(conn, *incomplete.id.as_u64());
     }
     async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) {
         // The way this function is ordered is important
@@ -433,7 +433,7 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
             let conn = data.get::<Database>().unwrap();
             match args[1] {
                 "channel" => {
-                    match database::add_channel(conn, guild_id.to_string(), vc_id.to_string(), vc_name.clone()) {
+                    match database::add_channel(conn, *guild_id.as_u64(), *vc_id.as_u64(), vc_name.clone()) {
                         Ok(_) => {
                             msg.reply(ctx, format!("Enabled changes for channel `{}`", vc_name)).await?;
                             change_channel(ctx, vc_id).await;
@@ -446,7 +446,7 @@ async fn enable(ctx: &Context, msg: &Message) -> CommandResult {
                 "category" => {
                     match cat_id {
                         Some(category_id) => {
-                            match database::add_category(conn, guild_id.to_string(), category_id.to_string()) {
+                            match database::add_category(conn, *guild_id.as_u64(), *category_id.as_u64()) {
                                 Ok(_) => {
                                     msg.reply(ctx, format!("Successfully enabled changes for category `{}`", vc_name)).await?;
                                     change_channel(ctx, vc_id).await;
@@ -491,7 +491,7 @@ async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
             let conn = data.get::<Database>().unwrap();
             match args[1] {
                 "channel" => {
-                    match database::del_channel(conn, vc_id.to_string()) {
+                    match database::del_channel(conn, *vc_id.as_u64()) {
                         Ok(()) => {
                             msg.reply(ctx, format!("Disabled changes for channel {}", vc_name)).await?;
                         },
@@ -503,7 +503,7 @@ async fn disable(ctx: &Context, msg: &Message) -> CommandResult {
                 "category" => {
                     match cat_id {
                         Some(category_id) => {
-                            match database::del_category(conn, category_id.to_string()) {
+                            match database::del_category(conn, *category_id.as_u64()) {
                                 Ok(_) => msg.reply(ctx, "Disabled changes for category").await?,
                                 Err(e) => msg.reply(ctx, format!("Error: {}", e)).await?,
                             };
@@ -545,7 +545,7 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
             let conn = data.get::<Database>().unwrap();
             match args[1] {
                 "channel" => {
-                    match database::set_channel_template(conn, vc_id.to_string(), String::from(args[2])) {
+                    match database::set_channel_template(conn, *vc_id.as_u64(), String::from(args[2])) {
                         Ok(()) => {
                             msg.reply(ctx, format!("Set channel template to `{}`", args[2])).await?;
                         },
@@ -557,7 +557,7 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
                 "category" => {
                     match cat_id {
                         Some(category_id) => {
-                            match database::set_category_template(conn, category_id.to_string(), String::from(args[2])) {
+                            match database::set_category_template(conn, *category_id.as_u64(), String::from(args[2])) {
                                 Ok(()) => {
                                     msg.reply(ctx, format!("Set category template to `{}`", args[2])).await?;
                                 },
@@ -664,7 +664,7 @@ async fn role(ctx: &Context, msg: &Message) -> CommandResult {
                 "add" => {
                     match guild.create_role(&ctx.http, |r| r.hoist(false).name(&game)).await {
                         Ok(role) => {
-                            match database::add_role(conn, role.id.to_string(), guild.id.to_string(), game.clone()) {
+                            match database::add_role(conn, *role.id.as_u64(), *guild.id.as_u64(), game.clone()) {
                                 Ok(()) => {
                                     msg.reply(ctx, format!("Added role {}", &game)).await?;
                                 },
@@ -679,9 +679,9 @@ async fn role(ctx: &Context, msg: &Message) -> CommandResult {
                     }
                 },
                 "remove" => {
-                    match database::get_role(conn, guild.id.to_string(), game.clone()) {
+                    match database::get_role(conn, *guild.id.as_u64(), game.clone()) {
                         Ok(role_id) => {
-                            match database::del_role(conn, role_id.to_string()) {
+                            match database::del_role(conn, role_id) {
                                 Ok(()) => {
                                     msg.reply(ctx, format!("Removed role {}", &game)).await?;
                                 }, 

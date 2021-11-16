@@ -22,7 +22,7 @@ use std::{
     io::{Error, ErrorKind},
 };
 
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, params};
 
 use serenity::prelude::TypeMapKey;
 
@@ -44,13 +44,13 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
     // Create fresh tables if they dont exist
     conn.execute("
         CREATE TABLE IF NOT EXISTS guilds (
-            guild_id TEXT PRIMARY KEY
+            guild_id INTEGER PRIMARY KEY
         );", [])?;
 
     conn.execute("
         CREATE TABLE IF NOT EXISTS channels (
-            channel_id TEXT,
-            guild_id TEXT,
+            channel_id INTEGER,
+            guild_id INTEGER,
             name TEXT NOT NULL,
             template TEXT,
             majority INTEGER,
@@ -63,8 +63,8 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
 
     conn.execute("
         CREATE TABLE IF NOT EXISTS categories (
-            category_id TEXT PRIMARY KEY,
-            guild_id TEXT,
+            category_id INTEGER PRIMARY KEY,
+            guild_id INTEGER,
             template TEXT,
             FOREIGN KEY (guild_id)
                 REFERENCES guilds (guild_id)
@@ -75,8 +75,8 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
     // Temporarily store names of channels in added categories
     conn.execute("
         CREATE TABLE IF NOT EXISTS tmp_channels (
-            channel_id TEXT PRIMARY KEY,
-            guild_id TEXT,
+            channel_id INTEGERPRIMARY KEY,
+            guild_id INTEGER,
             name TEXT NOT NULL,
             FOREIGN KEY (guild_id)
                 REFERENCES guilds (guild_id)
@@ -85,8 +85,8 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
         );", [])?;
     conn.execute("
         CREATE TABLE IF NOT EXISTS roles (
-            role_id TEXT PRIMARY KEY,
-            guild_id TEXT,
+            role_id INTEGER PRIMARY KEY,
+            guild_id INTEGER,
             game TEXT NOT NULL,
             FOREIGN KEY (guild_id)
                 REFERENCES guilds (guild_id)
@@ -99,7 +99,7 @@ pub fn init() -> Result<Mutex<Connection>, rusqlite::Error> {
 }
 
 // Adds a guild with no settings to the guilds table
-pub fn add_guild(conn: &Mutex<Connection>, guild_id: String) {
+pub fn add_guild(conn: &Mutex<Connection>, guild_id: u64) {
     let success = conn.clone().lock().unwrap().execute("INSERT INTO guilds VALUES(?1)", [guild_id]);
     match success {
         Ok(_) => println!("Successfully added server"),
@@ -108,7 +108,7 @@ pub fn add_guild(conn: &Mutex<Connection>, guild_id: String) {
 }
 
 // Deletes a guild from the guilds table
-pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
+pub fn del_guild(conn: &Mutex<Connection>, guild_id: u64) {
     let success = conn.clone().lock().unwrap().execute("DELETE FROM guilds WHERE guild_id = ?1", [guild_id]);
     match success {
         Ok(_) => println!("Successfully deleted server"),
@@ -116,7 +116,7 @@ pub fn del_guild(conn: &Mutex<Connection>, guild_id: String) {
     }
 }
 
-pub fn get_all_guilds(conn: &Mutex<Connection>) -> Result<Vec<String>> {
+pub fn get_all_guilds(conn: &Mutex<Connection>) -> Result<Vec<u64>> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT guild_id FROM guilds").unwrap();
     let rows = query.query_map([], |row| row.get(0))?;
@@ -128,11 +128,11 @@ pub fn get_all_guilds(conn: &Mutex<Connection>) -> Result<Vec<String>> {
 }
 
 // Adds a channel with no settings to the channels table
-pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: String, name: String) -> Result<(), Error> {
+pub fn add_channel(conn: &Mutex<Connection>, guild_id: u64, channel_id: u64, name: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("INSERT INTO channels VALUES(?1, ?2, ?3, NULL, NULL)").unwrap();
-    //match connection.execute("INSERT INTO channels VALUES(?1, ?2, ?3, NULL)", [channel_id, guild_id, name]) {
-    match query.execute([channel_id, guild_id, name]) {
+
+    match query.execute(params![channel_id, guild_id, name]) {
         Ok(_) => {
             println!("Successfully added channel");
             Ok(())
@@ -148,7 +148,7 @@ pub fn add_channel(conn: &Mutex<Connection>, guild_id: String, channel_id: Strin
 }
 
 // Gets data about a channel
-pub fn get_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(String, Option<String>)> {
+pub fn get_channel(conn: &Mutex<Connection>, channel_id: u64) -> Result<(String, Option<String>)> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT name, template FROM channels WHERE channel_id = ?")?;
     return query.query_row([channel_id], |row| {
@@ -156,10 +156,10 @@ pub fn get_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(Stri
     });
 }
 
-pub fn set_channel_template(conn: &Mutex<Connection>, channel_id: String, template: String) -> Result<(), Error> {
+pub fn set_channel_template(conn: &Mutex<Connection>, channel_id: u64, template: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("UPDATE channels SET template = ? WHERE channel_id = ?").unwrap();
-    match query.execute([template, channel_id]) {
+    match query.execute(params![template, channel_id]) {
         Ok(count) => {
             if count > 0 {
                 return Ok(())
@@ -173,7 +173,7 @@ pub fn set_channel_template(conn: &Mutex<Connection>, channel_id: String, templa
     }
 }
 
-pub fn del_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(), Error> {
+pub fn del_channel(conn: &Mutex<Connection>, channel_id: u64) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("DELETE FROM channels WHERE channel_id = ?").unwrap();
     match query.execute([channel_id]) {
@@ -186,7 +186,7 @@ pub fn del_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(), E
     }
 }
 
-pub fn del_category(conn: &Mutex<Connection>, category_id: String) -> Result<(), Error> {
+pub fn del_category(conn: &Mutex<Connection>, category_id: u64) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("DELETE FROM categories WHERE category_id = ?").unwrap();
     match query.execute([category_id]) {
@@ -204,7 +204,7 @@ pub fn del_category(conn: &Mutex<Connection>, category_id: String) -> Result<(),
 }
 
 // Adds a category with no settings to the channels table
-pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: String) -> Result<(), Error> {
+pub fn add_category(conn: &Mutex<Connection>, guild_id: u64, category_id: u64) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     match connection.execute("INSERT INTO categories VALUES(?1, ?2, NULL)", [category_id, guild_id]) {
         Ok(_) => {
@@ -221,7 +221,7 @@ pub fn add_category(conn: &Mutex<Connection>, guild_id: String, category_id: Str
     }
 }
 
-pub fn get_category(conn: &Mutex<Connection>, category_id: String) -> Result<Option<String>> {
+pub fn get_category(conn: &Mutex<Connection>, category_id: u64) -> Result<Option<String>> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT template FROM categories WHERE category_id = ?")?;
     return query.query_row([category_id], |row| {
@@ -229,10 +229,10 @@ pub fn get_category(conn: &Mutex<Connection>, category_id: String) -> Result<Opt
     });
 }
 
-pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, template: String) -> Result<(), Error> {
+pub fn set_category_template(conn: &Mutex<Connection>, category_id: u64, template: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("UPDATE categories SET template = ? WHERE category_id = ?").unwrap();
-    match query.execute([template, category_id]) {
+    match query.execute(params![template, category_id]) {
         Ok(count) => {
             if count > 0 {
                 return Ok(())
@@ -247,7 +247,7 @@ pub fn set_category_template(conn: &Mutex<Connection>, category_id: String, temp
 }
 
 // Gets a tmp_channel's name. For channels in added categories.
-pub fn get_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<String> {
+pub fn get_tmp_channel(conn: &Mutex<Connection>, channel_id: u64) -> Result<String> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT name FROM tmp_channels WHERE channel_id = ?")?;
     return query.query_row([channel_id], |row| {
@@ -256,10 +256,10 @@ pub fn get_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<S
 }
 
 // Adds a tmp_channel
-pub fn add_tmp_channel(conn: &Mutex<Connection>, channel_id: String, guild_id: String, name: String) -> Result<(), Error> {
+pub fn add_tmp_channel(conn: &Mutex<Connection>, channel_id: u64, guild_id: u64, name: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("INSERT INTO tmp_channels VALUES(?1, ?2, ?3)").unwrap();
-    match query.execute([channel_id, guild_id, name]) {
+    match query.execute(params![channel_id, guild_id, name]) {
         Ok(_) => {
             Ok(())
         },
@@ -273,7 +273,7 @@ pub fn add_tmp_channel(conn: &Mutex<Connection>, channel_id: String, guild_id: S
     }
 }
 
-pub fn del_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(), Error> {
+pub fn del_tmp_channel(conn: &Mutex<Connection>, channel_id: u64) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("DELETE FROM tmp_channels WHERE channel_id = ?").unwrap();
     match query.execute([channel_id]) {
@@ -286,10 +286,10 @@ pub fn del_tmp_channel(conn: &Mutex<Connection>, channel_id: String) -> Result<(
     }
 }
 
-pub fn add_role (conn: &Mutex<Connection>, role_id: String, guild_id: String, game: String) -> Result<(), Error> {
+pub fn add_role (conn: &Mutex<Connection>, role_id: u64, guild_id: u64, game: String) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("INSERT INTO roles VALUES(?1, ?2, ?3)").unwrap();
-    match query.execute([role_id, guild_id, game]) {
+    match query.execute(params![role_id, guild_id, game]) {
         Ok(_) => {
             Ok(())
         },
@@ -303,15 +303,15 @@ pub fn add_role (conn: &Mutex<Connection>, role_id: String, guild_id: String, ga
     }
 }
 
-pub fn get_role(conn: &Mutex<Connection>, guild_id: String, game: String) -> Result<String> {
+pub fn get_role(conn: &Mutex<Connection>, guild_id: u64, game: String) -> Result<u64> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT role_id FROM roles WHERE guild_id = ? AND game = ?")?;
-    return query.query_row([guild_id, game], |row| {
+    return query.query_row(params![guild_id, game], |row| {
         Ok(row.get(0)?)
     });
 }
 
-pub fn get_role_by_ids(conn: &Mutex<Connection>, guild_id: String, role_ids: String) -> Result<String> {
+pub fn get_role_by_ids(conn: &Mutex<Connection>, guild_id: u64, role_ids: u64) -> Result<u64> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("SELECT role_id FROM roles WHERE role_id in ?")?;
     return query.query_row([guild_id, role_ids], |row| {
@@ -319,7 +319,7 @@ pub fn get_role_by_ids(conn: &Mutex<Connection>, guild_id: String, role_ids: Str
     });
 }
 
-pub fn del_role(conn: &Mutex<Connection>, role_id: String) -> Result<(), Error> {
+pub fn del_role(conn: &Mutex<Connection>, role_id: u64) -> Result<(), Error> {
     let connection = conn.clone().lock().unwrap();
     let mut query = connection.prepare_cached("DELETE FROM roles WHERE role_id = ?").unwrap();
     match query.execute([role_id]) {
