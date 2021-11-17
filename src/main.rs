@@ -87,19 +87,13 @@ async fn channel_properties(ctx: &Context, channel_id: ChannelId, gchannel: sere
     let mut should_change: bool = false;
 
     // Check if the channel is in a category
-    match gchannel.category_id {
-        Some(cat_id) => {
-            // Get the template of the category
-            match database::get_category(conn, *cat_id.as_u64()) {
-                Ok(cat_templ) => {
-                    should_change = true;
-                    should_add_tmp = true;
-                    template = cat_templ;
-                },
-                Err(_) => {},
-            }
-        },
-        None => {},
+    if let Some(cat_id) = gchannel.category_id {
+        // Get the template of the category
+        if let Ok(cat_templ) = database::get_category(conn, *cat_id.as_u64()) {
+            should_change = true;
+            should_add_tmp = true;
+            template = cat_templ;
+        }
     }
     // Check if the channel itself is "enabled"
     match database::get_channel(conn, *channel_id.as_u64()) {
@@ -147,7 +141,6 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             // If no usual name is found, default to the current name
             old_name = properties.0.unwrap_or(gchannel.name.clone());
 
-
             // If should_change is false, ignore
             if !properties.3 {
                 return;
@@ -161,17 +154,14 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
             // Contains presences of all guild members
             let presences = gchannel.guild(&ctx).await.unwrap().presences;
             for member in gchannel.members(&ctx).await.unwrap() {
-                match presences.get(&member.user.id) {
-                    Some(presence) => {
-                        for activity in &presence.activities {
-                            if activity.kind == ActivityType::Playing {
-                                println!("{} is playing {:?}", member.user.name, activity.name);
-                                // Increase the count for this game
-                                *games.entry(activity.name.clone()).or_default() += 1;
-                            }
+                if let Some(presence) = presences.get(&member.user.id) {
+                    for activity in &presence.activities {
+                        if activity.kind == ActivityType::Playing {
+                            println!("{} is playing {:?}", member.user.name, activity.name);
+                            // Increase the count for this game
+                            *games.entry(activity.name.clone()).or_default() += 1;
                         }
-                    },
-                    None => {},
+                    }
                 }
             }
         },
@@ -213,11 +203,8 @@ async fn change_channel(ctx: &Context, channel_id: ChannelId) {
     // Channel is in an enabled category and not enabled itself.
     if add_tmp { 
         // Store its current name in tmp_channels
-        match database::add_tmp_channel(conn, *channel_id.as_u64(), *guild_id.as_u64(), curr_name.clone()) {
-            Ok(_) => {
-                println!("Added tmp entry");
-            },
-            Err(_) =>{},
+        if let Ok(_) = database::add_tmp_channel(conn, *channel_id.as_u64(), *guild_id.as_u64(), curr_name.clone()) {
+            println!("Added tmp entry");
         }
     }
 
@@ -303,20 +290,17 @@ impl EventHandler for Handler {
         // closes before we pass ctx elsewhere.
         {
             let mut data = ctx.data.write().await;
-            match env::var("DEBUG_CHANNEL") {
-                Ok(debug_channel) => {
-                    data.insert::<DebugChannel>(ctx.cache.guild_channel(debug_channel.parse::<u64>().unwrap()).await.unwrap());
-                },
-                Err(_) => {},
+            if let Ok(debug_channel) = env::var("DEBUG_CHANNEL") {
+                data.insert::<DebugChannel>(ctx.cache.guild_channel(debug_channel.parse::<u64>().unwrap()).await.unwrap());
             }
         }
         println!("Updating guilds table...");
         guild_check(&ctx).await;
     }
     // when the bot joins a server
-    async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: bool) {
+    async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {
         if is_new {
-            let data = _ctx.data.read().await;
+            let data = ctx.data.read().await;
             let conn = data.get::<Database>().unwrap();
              database::add_guild(conn, *guild.id.as_u64());
         }
@@ -327,88 +311,71 @@ impl EventHandler for Handler {
         let conn = data.get::<Database>().unwrap();
         database::del_guild(conn, *incomplete.id.as_u64());
     }
-    async fn voice_state_update(&self, _ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) {
+    async fn voice_state_update(&self, ctx: Context, _: Option<GuildId>, _old: Option<VoiceState>, _new: VoiceState) {
         // The way this function is ordered is important
         // because of my (lazy?) use of return
-        match _new.member {
+        if let Some(member) = _new.member {
             // Ignore events about bot users
-            Some(member) => if member.user.bot {
+            if member.user.bot {
                 println!("Ignoring bot");
                 return;
-            },
-            None => println!("Somehow didnt have a member"),
+            }
         }
         // Check your old channel
-        match _old {
-            Some(old) => match old.channel_id {
-                Some(channel_id) => {
+        if let Some(old) = _old {
+            if let Some(channel_id) = old.channel_id {
                     // Ignore deafen/mute
                     if _new.channel_id.is_some() && old.channel_id == _new.channel_id {
                         return;
                     }
-                    change_channel(&_ctx, channel_id).await;
-                },
-                None => {},
-            },
-            None => {},
+                    change_channel(&ctx, channel_id).await;
+            }
         }
         // Check your new channel
-        match _new.channel_id {
-            Some(channel_id) => change_channel(&_ctx, channel_id).await,
-            None => {},
+        if let Some(channel_id) = _new.channel_id {
+            change_channel(&ctx, channel_id).await;
         }
     }
     async fn presence_update(&self, ctx: Context, new_data: PresenceUpdateEvent) {
-        match new_data.guild_id {
-            Some(guild_id) => {
-                match get_vc_id(&ctx, new_data.presence.user_id, guild_id).await {
-                    Some((vc_id, _vc_name, _cat_id)) => {
-                        change_channel(&ctx, vc_id).await;
-                    },
-                    None => { },
-                }
-                // Give/take roles
-                let mut game = "foobar".to_string();
-                let mut found_game = false;
+        if let Some(guild_id) = new_data.guild_id {
+            if let Some((vc_id, _vc_name, _cat_id)) = get_vc_id(&ctx, new_data.presence.user_id, guild_id).await {
+                change_channel(&ctx, vc_id).await;
+            }
+            // Give/take roles
+            let mut game = "foobar".to_string();
+            let mut found_game = false;
 
-                for activity in &new_data.presence.activities {
-                    if activity.kind == ActivityType::Playing {
-                        game = activity.name.clone();
-                        found_game = true;
-                        break;
-                    } else {
-                        game = "foobar".to_string();
-                    }
-                }
-                if found_game {
-                    let data = ctx.data.read().await;
-                    let conn = data.get::<Database>().unwrap();
-                    match database::get_role(conn, *guild_id.as_u64(), game) {
-                        Ok(role_id) => {
-                            match guild_id.member(&ctx.http, new_data.presence.user_id).await {
-                                Ok(mut member) => {
-                                    println!("Giving user role {}", role_id);
-                                    match member.add_role(&ctx.http, role_id).await {
-                                        Ok(_) => {},
-                                        Err(_) => {},
-                                    };
-                                },
-                                Err(_) => {
-                                    println!("Could not get member");
-                                }
-                            }
-                        },
-                        Err(_) => {
-                            println!("No role for game");
-                        }
-                    }
+            for activity in &new_data.presence.activities {
+                if activity.kind == ActivityType::Playing {
+                    game = activity.name.clone();
+                    found_game = true;
+                    break;
                 } else {
-                    println!("Not playing a game");
+                    game = "foobar".to_string();
                 }
-
-
-            },
-            None => println!("No guild"),
+            }
+            if found_game {
+                let data = ctx.data.read().await;
+                let conn = data.get::<Database>().unwrap();
+                match database::get_role(conn, *guild_id.as_u64(), game) {
+                    Ok(role_id) => {
+                        match guild_id.member(&ctx.http, new_data.presence.user_id).await {
+                            Ok(mut member) => {
+                                println!("Giving user role {}", role_id);
+                                let _ = member.add_role(&ctx.http, role_id).await;
+                            },
+                            Err(_) => {
+                                println!("Could not get member");
+                            }
+                        }
+                    },
+                    Err(_) => {
+                        println!("No role for game");
+                    }
+                }
+            } else {
+                println!("Not playing a game");
+            }
         }
     }
 }
@@ -626,21 +593,18 @@ async fn template(ctx: &Context, msg: &Message) -> CommandResult {
 async fn info(ctx: &Context, msg: &Message) -> CommandResult {
     match get_vc_id(ctx, msg.author.id, msg.guild_id.unwrap()).await {
         Some((vc_id, vc_name, _cat_id)) => {
-            match vc_id.to_channel(&ctx.http).await.unwrap().guild() {
-                Some (gchannel) => {
-                    let usual_name;
-                    let template;
-                    let properties = channel_properties(ctx, vc_id, gchannel.clone()).await;
+            if let Some(gchannel) = vc_id.to_channel(&ctx.http).await.unwrap().guild() {
+                let usual_name;
+                let template;
+                let properties = channel_properties(ctx, vc_id, gchannel.clone()).await;
 
-                    // If no usual name is found, default to the current name
-                    usual_name = properties.0.unwrap_or(gchannel.name.clone());
-                    // If no template is found, default.
-                    template = properties.1.unwrap_or("X - Y".to_string());
-                    
-                    msg.reply(ctx, format!("Voice Channel ID: {}\nVoice Channel Name: {}\nUsual name: {}\nWill change: {}\nTemplate: `{}`",
-                        vc_id, vc_name, usual_name, properties.3, template)).await?;
-                },
-                None => {},
+                // If no usual name is found, default to the current name
+                usual_name = properties.0.unwrap_or(gchannel.name.clone());
+                // If no template is found, default.
+                template = properties.1.unwrap_or("X - Y".to_string());
+
+                msg.reply(ctx, format!("Voice Channel ID: {}\nVoice Channel Name: {}\nUsual name: {}\nWill change: {}\nTemplate: `{}`",
+                    vc_id, vc_name, usual_name, properties.3, template)).await?;
             };
         },
         None=> {
@@ -681,8 +645,6 @@ async fn role(ctx: &Context, msg: &Message) -> CommandResult {
     let guild = msg.guild(&ctx).await.unwrap();
     match guild.presences.get(&msg.author.id) {
         Some(presence) => {
-            let data = ctx.data.read().await;
-            let conn = data.get::<Database>().unwrap();
             let mut game = "foobar".to_string();
             let mut found_game = false;
 
@@ -704,6 +666,9 @@ async fn role(ctx: &Context, msg: &Message) -> CommandResult {
                 "add" => {
                     match guild.create_role(&ctx.http, |r| r.hoist(false).name(&game)).await {
                         Ok(role) => {
+                            let data = ctx.data.read().await;
+                            let conn = data.get::<Database>().unwrap();
+
                             match database::add_role(conn, *role.id.as_u64(), *guild.id.as_u64(), game.clone()) {
                                 Ok(()) => {
                                     msg.reply(ctx, format!("Added role {}", &game)).await?;
@@ -719,6 +684,8 @@ async fn role(ctx: &Context, msg: &Message) -> CommandResult {
                     }
                 },
                 "remove" => {
+                    let data = ctx.data.read().await;
+                    let conn = data.get::<Database>().unwrap();
                     match database::get_role(conn, *guild.id.as_u64(), game.clone()) {
                         Ok(role_id) => {
                             match database::del_role(conn, role_id) {
