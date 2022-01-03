@@ -4,9 +4,10 @@ Discord bot that automatically updates voice channel names based on what games p
 Add the bot to your server:
 [First instance (full)](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16) |
 [Second instance](https://discordapp.com/oauth2/authorize?client_id=764169534226694147&scope=bot&permissions=16) |
-[Third instance](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
+[Third instance](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16) | 
+[Testing instance (Rust)](https://discordapp.com/oauth2/authorize?client_id=923438987786485791&scope=bot&permissions=268435472)
 
-If you're wondering why there are three instances, it is because unverified bots
+If you're wondering why there are multiple instances, it is because unverified bots
 can't join more than 100 servers. Discord's verification process requires developers
 to submit [legal photo identification](https://support.discord.com/hc/en-us/articles/1500006788922-Bot-Verification-FAQ-for-Parents-Legal-Guardians-and-Other-Sponsors).
 This is something I will not stand for.
