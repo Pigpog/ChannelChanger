@@ -1,10 +1,17 @@
-const Discord = require('discord.js');
+const {Client, Intents, Permissions} = require('discord.js');
 const jsonfile = require('jsonfile');
 const tokens = require('./tokens.js');
 var channels=require("./channels.json");
 
-const client = new Discord.Client({
-	messageCacheMaxSize:1
+const client = new Client({
+	messageCacheMaxSize:1,
+	intents: [
+		Intents.FLAGS.GUILDS,
+		Intents.FLAGS.GUILD_MESSAGES,
+		Intents.FLAGS.GUILD_PRESENCES,
+		Intents.FLAGS.GUILD_MEMBERS,
+		Intents.FLAGS.GUILD_VOICE_STATES
+	]
 });
 
 // dont set the channel name to these
@@ -14,9 +21,9 @@ var changes=false;
 
 client.on('ready', () => {
 	console.log('Logged in as ' + client.user.username);
-	updatePresence();
+	client.user.setPresence({ activities: [{ name: "!help - Changing Channels", status: 'online' }], status: 'online' });
 	// Log some statistics
-	console.log("Guilds: " + client.guilds.size);
+	console.log("Guilds: " + client.guilds.cache.size);
 	// count managed channels
 	console.log("Channels in database: " + Object.keys(channels).length); 
 	if(process.argv[2] === "prune"){
@@ -24,23 +31,20 @@ client.on('ready', () => {
 	}
 });
 
-client.login(tokens.bot_token);
 
 function prune() {
-    var deleted = 0;
+// TODO: make this work again
+
+/*    var deleted = 0;
     console.log("Pruning database...");
     for(var channel in channels){
-        if(!client.channels.get(channel)){
+        if(!client.channels.fetch(channel)){
             delete channels[channel];
             deleted++;
             autosave();
         }
     }
-    console.log("Deleted "+deleted+" channels.");
-}
-
-function updatePresence(){
-	client.user.setPresence({ activity: { name: "!help - Changing Channels", status: 'online' } });
+    console.log("Deleted "+deleted+" channels.");*/
 }
 
 /**
@@ -137,16 +141,41 @@ function scanOne(channel){
 		autosave();
 	}
 }
+
+/* Necessary permissions checks for commands to work.
+ * Checks if the user is in a voice channel, has MANAGE_CHANNELS,
+ * and that the bot has MANAGE_CHANNELS. If not, it replies with
+ * an error.
+ */
+function commandChecks(message) {
+	pass = true;
+	if (!message.member.voice.channelId) {
+		message.reply("You must be in a voice channel to use this command.");
+		pass = false;
+	} else {
+		var voiceChannel=message.member.voice.channel;
+		if(!message.member.permissionsIn(message.member.voice.channel).has(Permissions.FLAGS.MANAGE_CHANNELS)) {
+			message.reply("You need `manage_channels` permission to do this.")
+			pass = false;
+		} else if (!voiceChannel.manageable) {
+			message.reply("I need `manage_channels` permission to do this.")
+			pass = false;
+		}
+	}
+	return {pass: pass, vc: voiceChannel};
+}
+
 //update affected channels when someone leaves or joins
 client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => {
-	if(oldVoiceState.channelID !== newVoiceState.channelID){ // dont respond to mute/deafen
-		if (oldVoiceState.channelID){
-			if (channels[oldVoiceState.channelID]){
+	console.log("Voice state update")
+	if(oldVoiceState.channelId !== newVoiceState.channelId){ // dont respond to mute/deafen
+		if (oldVoiceState.channelId){
+			if (channels[oldVoiceState.channelId]){
 				scanOne(oldVoiceState.channel);
 			}
 		}
-		if (newVoiceState.channelID){
-			if (channels[newVoiceState.channelID]){
+		if (newVoiceState.channelId){
+			if (channels[newVoiceState.channelId]){
 				scanOne(newVoiceState.channel);
 			}
 		}
@@ -154,122 +183,94 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => {
 });
 
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-	if(newPresence.member.voice.channelID){
-		if(channels[newPresence.member.voice.channelID]){ // if their voice channel is managed by the bot
+	console.log("presence update")
+	if(newPresence.member.voice.channelId){
+		if(channels[newPresence.member.voice.channelId]){ // if their voice channel is managed by the bot
 			scanOne(newPresence.member.voice.channel);
 		}
 	}
 });
 
-client.on('message', message =>{
+client.on('messageCreate', message =>{
 	if(message.guild){
 		if(message.content[0]==="!"){
 			var messageL=message.content.toLowerCase()
 			if (messageL === "!invite") {
 				message.reply("https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16");
-			}else if (messageL==="!addvc"){
-				if(message.member.hasPermission("MANAGE_CHANNELS")){
-					if (message.member.voice.channelID){
-						var voiceChannel=message.member.voice.channel;
-						if(voiceChannel.manageable){
-							if (!channels[voiceChannel.id]){
-								channels[voiceChannel.id]=[voiceChannel.name, 0.5, "X - Y"];
-								autosave()
-								message.reply("Successfully added `"+voiceChannel.name+"` to my list")
-								scanOne(voiceChannel)
-								//updatePresence();
-							}else{
-								message.reply("`"+channels[voiceChannel.id][0]+"` is already on my list.")
-							}
-						}else{
-							message.reply("I need `manage_channels` permission to do this.")
-						}
-					}else{
-						message.reply("You must be in a voice channel to use this command.")
-					}
-				}else{
-					message.reply("You need `manage_channels` permission to do this.")
+			} else if (messageL==="!addvc") {
+				var checks = commandChecks(message);
+				if (!checks.pass) return;
+				if (!channels[checks.vc.id]) {
+					channels[checks.vc.id] = [checks.vc.name, 0.5, "X - Y"];
+					autosave()
+					message.reply("Successfully added `"+checks.vc.name+"` to my list")
+					scanOne(checks.vc)
+				} else {
+					message.reply("`"+channels[checks.vc.id][0]+"` is already on my list.")
 				}
-			}else if(messageL==="!removevc"){
-				if(message.member.hasPermission("MANAGE_CHANNELS")){
-					if (message.member.voice.channel){
-						var voiceChannel=message.member.voice.channel;
-						if (channels[voiceChannel.id]){
-							if(voiceChannel.manageable){
-								voiceChannel.setName(channels[voiceChannel.id][0])
-							}
-							delete channels[voiceChannel.id];
+			} else if(messageL==="!removevc") {
+				var checks = commandChecks(message);
+				if (!checks.pass) return;
+				if (channels[checks.vc.id]){
+					if (checks.vc.manageable){
+						checks.vc.setName(channels[checks.vc.id][0])
+					}
+					delete channels[checks.vc.id];
+					autosave();
+					message.reply("Successfully removed `"+checks.vc.name+"` from my list.");
+				}else{
+					message.reply("`"+checks.vc.name+"` was not on my list.");
+				}
+
+			} else if(messageL==="!template"){
+				if (message.member.voice.channel) {
+					var vcid = message.member.voice.channelId;
+					if (channels[vcid]) {
+						message.reply("Template for `"+channels[vcid][0]+"` is `"+channels[vcid][2]+"`");
+					}
+				}
+			} else if(messageL.indexOf("!template ")===0) {
+				var checks = commandChecks(message);
+				if (!checks.pass) return;
+				if (channels[checks.vc.id]) {
+					var newTemplate=message.content.substr(10).trim();
+					if (newTemplate.length < 100) {
+						if(newTemplate.includes("Y")) {
+							channels[checks.vc.id][2] = newTemplate;
+							message.reply("The template for `" + channels[checks.vc.id][0] + "` is now "+newTemplate);
+							scanOne(checks.vc.id);
 							autosave();
-							//updatePresence();
-							message.reply("Successfully removed `"+voiceChannel.name+"` from my list.");
 						}else{
-							message.reply("`"+voiceChannel.name+"` was not on my list.");
+							message.reply("The template must include `Y`.");
 						}
 					}else{
-						message.reply("You must be in a voice channel to use this command!");
+						message.reply("The template must be less than 100 characters long.");
 					}
 				}else{
-					message.reply("You need `manage_channels` permission to do this.");
-				}
-			}else if(messageL==="!template"){
-				if(message.member.voice.channel){
-					if(channels[message.member.voice.channelID]){
-						message.reply("Template for `"+channels[message.member.voice.channelID][0]+"` is `"+channels[message.member.voice.channelID][2]+"`");
-					}
-				}
-			}else if(messageL.indexOf("!template ")===0) {
-				if(message.member.hasPermission("MANAGE_CHANNELS")) {
-					if(message.member.voice.channel) {
-						if(channels[message.member.voice.channelID]) {
-							var newTemplate=message.content.substr(10).trim();
-							if(newTemplate.length < 100) {
-								if(newTemplate.includes("Y")) {
-									channels[message.member.voice.channelID][2] = newTemplate;
-									message.reply("The template for `" + channels[message.member.voice.channelID][0] + "` is now "+newTemplate);
-									scanOne(message.member.voice.channel);
-									autosave();
-								}else{
-									message.reply("The template must include `Y`.");
-								}
-							}else{
-								message.reply("The template must be less than 100 characters long.");
-							}
-						}else{
-							message.reply("Please run `!addvc` first.");
-						}
-					}else{
-						message.reply("You must be in a voice channel to use this command.");
-					}
-				}else{
-					message.reply("You need `manage_channels` permission to do this.");
+					message.reply("Please run `!addvc` first.");
 				}
 			}else if(messageL==="!majority") {
 				if(message.member.voice.channel) {
-					if(channels[message.member.voice.channelID]) {
-						message.reply("Majority for `"+channels[message.member.voice.channelID][0]+"`: "+channels[message.member.voice.channelID][1]*100+"%");
+					var vcid = message.member.voice.channelId;
+					if(channels[vcid]) {
+						message.reply("Majority for `"+channels[vcid][0]+"`: "+channels[vcid][1]*100+"%");
 					}
 				}
-			}else if(messageL.indexOf("!majority ")===0) {
-				if(message.member.hasPermission("MANAGE_CHANNELS")) {
-					if(message.member.voice.channelID) {
-						if(channels[message.member.voice.channelID]) {
-							var majority = parseInt(messageL.substr(10));
-							if(majority > 0 && majority < 100) {
-								channels[message.member.voice.channelID][1] = majority / 100;
-								message.reply("Set majority for channel `"+channels[message.member.voice.channelID][0]+"` to "+majority+"%");
-								scanOne(message.member.voice.channel);
-								autosave();
-							}else{
-								message.reply("Invalid input. Number must be between 1 and 99.");
-							}
-						}else{
-							message.reply("Please run `!addvc` first.");
-						}
-					}else{
-						message.reply("You must be in a voice channel to use this command!");
+			}else if (messageL.indexOf("!majority ")===0) {
+				var checks = commandChecks(message);
+				if (!checks.pass) return;
+				if (channels[checks.vc.id]) {
+					var majority = parseInt(messageL.substr(10));
+					if (majority > 0 && majority < 100) {
+						channels[checks.vc.id][1] = majority / 100;
+						message.reply("Set majority for channel `"+channels[checks.vc.id][0]+"` to "+majority+"%");
+						scanOne(checks.vc);
+						autosave();
+					} else {
+						message.reply("Invalid input. Number must be between 1 and 99.");
 					}
-				}else{
-					message.reply("You need `manage_channels` permission to do this.");
+				} else {
+					message.reply("Please run `!addvc` first.");
 				}
 			}else if (messageL==="!help"){
 				message.channel.send("__Channel Changer Help__\n*The purpose of Channel Changer is to add what game you're playing to your connected voice channel's name.*\n**!addvc**: Adds your voice channel to be renamed.\n**!removevc**: Removes your voice channel from the list.\n**!majority**: Sets what percentage of people have to be playing the same game for it to change the name. From 1-100.\n**!template**: Sets the template. Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.\n**!invite**: Get the link to invite the bot.");
@@ -280,7 +281,6 @@ client.on('message', message =>{
 
 client.on("guildCreate", guild=>{
 	console.log("Joined "+guild.name);
-	//updatePresence();
 })
 
 client.on("guildDelete", guild => {
@@ -293,3 +293,5 @@ client.on("guildDelete", guild => {
 process.on('unhandledRejection', function (err) {
 
 });
+
+client.login(tokens.bot_token);
