@@ -27,13 +27,57 @@ This is something I will not stand for.
 `!template` Sets the template. Default: `!template X - Y`. 'X' represents the original channel name, and 'Y' represents the majority game. If no new template is provided it will reply with the currently set template.
 
 ## Usage
+
 (Note: You and the bot need Manage Channels permission)
  - [Invite the bot to your server](https://discordapp.com/oauth2/authorize?client_id=815686117122506842&scope=bot&permissions=16)
  - Join a voice channel
  - Send !addvc to a channel that the bot can see on the same server
+ - The bot will now automatically rename that voice channel to what game you're playing!
  
- ### If you are running your own Channel Changer, add your token to `tokens.json`
+
+## Self-Hosting 
  
- ## Node modules:
-  - [discord.js](https://www.npmjs.com/package/discord.js)
-  - [jsonfile](https://www.npmjs.com/package/jsonfile)
+### 1. Clone this repository
+
+```
+git clone https://github.com/Pigpog/ChannelChanger.git
+```
+
+### 2. Get the dependencies
+
+In the ChannelChanger folder, run `npm i` to fetch the dependencies:
+
+```
+cd ChannelChanger
+npm i
+```
+
+### If you don't have a bot token...
+
+Visit the [Discord Developer Portal](https://discord.com/developers/applications) and create a new application.
+Then head to the Bot section of the application, and create your bot user.
+Click the Reset Token button and copy the generated token (about 60 characters long) for the next step.
+Don't share this token with anyone!
+
+### 3. Give the bot Intents
+
+In your bot's Discord Application settings page, go to the Bot section and enable the Presence Intent, the Server Members Intent, and the Message Content Intent. 
+These are required for the bot to access the data it needs to function.
+
+### 4. Put your bot user's token in tokens.json
+
+Open the tokens.json file in a text editor.
+Remove the placeholder text that says `Your token here`, and paste your token between the two quotation marks.
+Save the file.
+
+### 5. Start the bot!
+
+Start the bot by running this command in the ChannelChanger project folder:
+
+```
+node channelchanger.js
+```
+
+It should show how many channels are in the database and how many servers the bot user is in.
+
+This is the command to run every time you want to start the bot.
