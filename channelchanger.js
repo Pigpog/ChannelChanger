@@ -15,7 +15,7 @@ const client = new Client({
 });
 
 // dont set the channel name to these
-var noFlyList=[undefined,"Spotify", "Custom Status"];
+var noFlyList=[undefined, "Spotify", "Custom Status"];
 //whether or not there have been unsaved changes made to the database
 var changes=false; 
 
@@ -91,9 +91,12 @@ function majority(channel,majorityPercent) {
 	channel.members.forEach(function(member) {
 		if(!member.user.bot) { // ignore bots
 			userCount++;
-			if(member.presence.activities.length > 0){
+			if(member.presence && member.presence.activities.length > 0){
+				// Get the second-last activity, which avoids
+				// using Custom Status as a game name.
 				var gameName = member.presence.activities[member.presence.activities.length-1].toString();
 				if(gameName) {
+					// Tally the games up
 					games[gameName] = ((games[gameName] || 0) + 1);
 					if(games[gameName] > majorityNumber) {
 						majorityName = gameName;
@@ -103,9 +106,10 @@ function majority(channel,majorityPercent) {
 			}
 		}
 	})
-	if((majorityNumber / userCount) > majorityPercent){ // if we have a majority over the threshold
+	// if we have a majority over the threshold
+	if((majorityNumber / userCount) > majorityPercent){
 		return(majorityName);
-	}else{
+	} else {
 		return;
 	}
 }
@@ -167,8 +171,8 @@ function commandChecks(message) {
 
 //update affected channels when someone leaves or joins
 client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => {
-	console.log("Voice state update")
-	if(oldVoiceState.channelId !== newVoiceState.channelId){ // dont respond to mute/deafen
+	// dont respond to mute/deafen
+	if(oldVoiceState.channelId !== newVoiceState.channelId){ 
 		if (oldVoiceState.channelId){
 			if (channels[oldVoiceState.channelId]){
 				scanOne(oldVoiceState.channel);
@@ -183,9 +187,9 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => {
 });
 
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-	console.log("presence update")
-	if(newPresence.member.voice.channelId){
-		if(channels[newPresence.member.voice.channelId]){ // if their voice channel is managed by the bot
+	if(newPresence.member && newPresence.member.voice.channelId){
+		// if their voice channel is managed by the bot
+		if(channels[newPresence.member.voice.channelId]){
 			scanOne(newPresence.member.voice.channel);
 		}
 	}
@@ -196,7 +200,7 @@ client.on('messageCreate', message =>{
 		if(message.content[0]==="!"){
 			var messageL=message.content.toLowerCase()
 			if (messageL === "!invite") {
-				message.reply("https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16");
+				message.reply("https://discordapp.com/oauth2/authorize?client_id=" + client.user.id + "&scope=bot&permissions=16");
 			} else if (messageL==="!addvc") {
 				var checks = commandChecks(message);
 				if (!checks.pass) return;
@@ -285,7 +289,6 @@ client.on("guildCreate", guild=>{
 
 client.on("guildDelete", guild => {
 	console.log("Left "+guild.name);
-	updatePresence();
 	prune();
 })
 
