@@ -5,11 +5,11 @@ var channels=require("./channels.json");
 
 const client = new Client({
 	messageCacheMaxSize:1,
+
 	intents: [
 		Intents.FLAGS.GUILDS,
 		Intents.FLAGS.GUILD_MESSAGES,
 		Intents.FLAGS.GUILD_PRESENCES,
-		Intents.FLAGS.GUILD_MEMBERS,
 		Intents.FLAGS.GUILD_VOICE_STATES
 	]
 });
@@ -31,6 +31,7 @@ client.on('ready', () => {
 	}
 });
 
+client.login(tokens.bot_token);
 
 function prune() {
 // TODO: make this work again
@@ -297,4 +298,3 @@ process.on('unhandledRejection', function (err) {
 
 });
 
-client.login(tokens.bot_token);
