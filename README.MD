@@ -1,6 +1,29 @@
 # ChannelChanger
 Discord bot that automatically updates voice channel names based on what games people are playing in it.
 
+---
+<p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
+  <a rel="license"
+     href="http://creativecommons.org/publicdomain/zero/1.0/">
+    <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
+  </a>
+  <br />
+  To the extent possible under law,
+  <a rel="dct:publisher"
+     href="https://github.com/Pigpog">
+    <span property="dct:title">Pigpog</span></a>
+  has waived all copyright and related or neighboring rights to
+  <span property="dct:title">ChannelChanger</span>.
+This work is published from:
+<span property="vcard:Country" datatype="dct:ISO3166"
+      content="CA" about="https://github.com/Pigpog">
+  Canada</span>.
+</p>
+
+---
+
+### This project has been discontinued and the following bot users are expected to be terminated in October 2022
+
 Add the bot to your server:
 [First instance (full)](https://discordapp.com/oauth2/authorize?client_id=376545537870266369&scope=bot&permissions=16) |
 [Second instance](https://discordapp.com/oauth2/authorize?client_id=764169534226694147&scope=bot&permissions=16) |
